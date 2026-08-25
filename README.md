@@ -273,7 +273,7 @@ docker --version
 Clone o repositório e entre no diretório do projeto:
 
 ```bash
-git clone git@github.com:RafaExMachina/medical-triage-uv.git
+git clone git@github.com:RafaExMachina/medical-triage.git
 cd medical-triage
 ```
 
