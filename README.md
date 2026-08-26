@@ -1,6 +1,8 @@
 # Medical Triage — Etapas 1 e 2
 
-API de classificação de textos médicos construída como baseline para um pipeline incremental de MLOps.
+**Versão atual: `0.2.0`**
+
+API de classificação de textos médicos desenvolvida como base para um pipeline incremental de MLOps.
 
 > **Escopo atual:** este README documenta funcionalidades já implementadas e validadas nas **Etapas 1 e 2**. A Etapa 1 cobre baseline de NLP, FastAPI, Docker e medição de latência. A Etapa 2 adiciona testes de integração, pre-commit, CI com GitHub Actions e pipeline de treinamento com Apache Airflow. Prometheus, Grafana e otimizações de inferência serão adicionados somente quando forem implementados.
 
