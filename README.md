@@ -1,28 +1,31 @@
-# Medical Triage — Etapa 1
+# Medical Triage — Etapas 1 e 2
 
 API de classificação de textos médicos construída como baseline para um pipeline incremental de MLOps.
 
-> **Escopo atual:** este README documenta somente o que está implementado e validado na **Etapa 1**. As próximas etapas do projeto — CI/CD, Airflow, Prometheus, Grafana e otimização de inferência — serão adicionadas incrementalmente quando forem implementadas.
+> **Escopo atual:** este README documenta funcionalidades já implementadas e validadas nas **Etapas 1 e 2**. A Etapa 1 cobre baseline de NLP, FastAPI, Docker e medição de latência. A Etapa 2 adiciona testes de integração, pre-commit, CI com GitHub Actions e pipeline de treinamento com Apache Airflow. Prometheus, Grafana e otimizações de inferência serão adicionados somente quando forem implementados.
 
 ---
 
-## 1. Objetivo da Etapa 1
+## 1. Objetivo
 
-A Etapa 1 estabelece uma base reproduzível para servir um modelo de NLP em tempo real.
+O projeto demonstra, de forma incremental e reproduzível, como construir e evoluir um serviço de Machine Learning para classificação de textos médicos.
 
-Nesta etapa, o projeto implementa:
+Já foram implementados:
 
-- carregamento automático do dataset;
+- download automático do dataset;
 - treinamento de um classificador baseline;
-- persistência do modelo e das métricas;
+- persistência de modelo e métricas;
 - API REST com FastAPI;
 - validação de entrada;
-- container Docker multi-stage;
-- testes unitários;
-- lint e análise estática de tipos;
+- Docker multi-stage para inferência;
+- testes unitários e de integração;
+- Ruff, mypy e pre-commit;
+- CI com GitHub Actions;
+- pipeline de treinamento com Apache Airflow;
+- validação do dataset antes do treinamento;
+- validação dos artefatos após o treinamento;
 - medição de latência local e em Docker;
-- definição da arquitetura de deploy em nuvem;
-- documentação para que um terceiro consiga reproduzir o fluxo.
+- documentação de reprodução para terceiros.
 
 ---
 
@@ -30,7 +33,7 @@ Nesta etapa, o projeto implementa:
 
 O projeto utiliza o **Medical Abstracts TC Corpus**.
 
-O dataset possui cinco categorias de condições médicas:
+O dataset possui cinco categorias:
 
 1. neoplasms;
 2. digestive system diseases;
@@ -40,82 +43,84 @@ O dataset possui cinco categorias de condições médicas:
 
 **O dataset não possui rótulos de urgência clínica.**
 
-Portanto, nesta Etapa 1, o projeto demonstra a infraestrutura de classificação de textos médicos e de serving de modelos, mas **não deve ser interpretado como um sistema clínico real de triagem `normal / attention / urgent`**.
+Portanto, o projeto demonstra infraestrutura de classificação de textos médicos e serving de modelos, mas **não deve ser interpretado como um sistema clínico real de triagem `normal / attention / urgent`**.
 
-Não é feita nenhuma conversão artificial entre categoria de doença e nível de urgência.
+Não é feita conversão artificial entre categoria de doença e nível de urgência.
 
 ---
 
-## 3. Arquitetura da Etapa 1
+## 3. Arquitetura da aplicação
 
-A aplicação utiliza uma organização inspirada em Clean Architecture e princípios SOLID.
+A aplicação utiliza organização inspirada em Clean Architecture e princípios SOLID.
 
 ```text
-                         ┌─────────────────────┐
-                         │       Client        │
-                         └──────────┬──────────┘
-                                    │
-                              HTTP / JSON
-                                    │
-                                    ▼
-                         ┌─────────────────────┐
-                         │       FastAPI       │
-                         │ Presentation Layer  │
-                         └──────────┬──────────┘
-                                    │
-                                    ▼
-                         ┌─────────────────────┐
-                         │      Use Case       │
-                         │ Application Layer   │
-                         └──────────┬──────────┘
-                                    │
-                             ClassifierPort
-                                    │
-                                    ▼
-                         ┌─────────────────────┐
-                         │ SklearnClassifier   │
-                         │ Infrastructure      │
-                         └──────────┬──────────┘
-                                    │
-                                    ▼
-                         ┌─────────────────────┐
-                         │ classifier.joblib   │
-                         │ TF-IDF + LogReg     │
-                         └─────────────────────┘
+Client
+  │
+  ▼
+FastAPI
+Presentation Layer
+  │
+  ▼
+Use Case
+Application Layer
+  │
+  ▼
+ClassifierPort
+  │
+  ▼
+SklearnClassifier
+Infrastructure
+  │
+  ▼
+classifier.joblib
+TF-IDF + Logistic Regression
 ```
 
-O treinamento segue:
+O treinamento baseline segue:
 
 ```text
 Medical Abstracts TC Corpus
           │
           ▼
-    DatasetLoader
+     DatasetLoader
           │
           ▼
-   Training Dataset
+    Training Dataset
           │
           ▼
 Stratified Train/Validation Split
           │
           ▼
-       TF-IDF
+        TF-IDF
           │
           ▼
  Logistic Regression
           │
-      ┌───┴────────────┐
-      ▼                ▼
-classifier.joblib   metrics.json
+       ┌──┴──────────────┐
+       ▼                 ▼
+classifier.joblib    metrics.json
+```
+
+Na Etapa 2, o treinamento também pode ser orquestrado pelo Airflow:
+
+```text
+prepare_dataset_task
+        │
+        ▼
+validate_dataset_task
+        │
+        ▼
+train_model_task
+        │
+        ▼
+validate_artifacts_task
 ```
 
 ---
 
-## 4. Decisão: inferência em tempo real
+## 4. Inferência em tempo real
 
-A API utiliza inferência **real-time**.
-
-A escolha é adequada porque o fluxo esperado é:
+A API utiliza inferência **real-time**:
 
 ```text
 texto médico
@@ -130,13 +135,13 @@ inferência
 resposta imediata
 ```
 
-Uma abordagem batch seria mais adequada para grandes volumes processados de forma periódica, mas não para uma aplicação interativa que precisa responder a uma requisição individual.
+Uma abordagem batch seria mais adequada para processamento periódico em grande volume, mas não para uma aplicação interativa que precisa responder a uma requisição individual.
 
 ---
 
 ## 5. Arquitetura de cloud selecionada
 
-A arquitetura selecionada para deploy é:
+A arquitetura planejada para deploy é:
 
 ```text
 Developer / CI
@@ -157,19 +162,15 @@ FastAPI + Model
 HTTP /predict
 ```
 
-### AWS ECR
+O Amazon ECR foi selecionado como registro de imagem e uma instância EC2 como ambiente de execução contínua da API.
 
-O Amazon Elastic Container Registry será utilizado como registro da imagem Docker.
-
-### AWS EC2
-
-A instância EC2 executará continuamente o container da API, característica adequada ao cenário de inferência em tempo real e à necessidade de controle sobre o ambiente de execução.
-
-> Nesta etapa, a arquitetura de cloud está definida e documentada. A automação de entrega será adicionada incrementalmente nas próximas etapas.
+> A arquitetura de cloud está definida, mas o deploy automatizado em AWS ainda não faz parte do estado atual do repositório.
 
 ---
 
 ## 6. Tecnologias
+
+### Aplicação e Machine Learning
 
 - Python 3.12
 - uv
@@ -178,10 +179,20 @@ A instância EC2 executará continuamente o container da API, característica ad
 - Scikit-learn
 - Pandas
 - Joblib
+
+### Qualidade
+
 - Pytest
 - Ruff
 - mypy
+- pre-commit
+
+### MLOps e infraestrutura
+
 - Docker
+- Docker Compose
+- GitHub Actions
+- Apache Airflow 3.3.1
 
 Modelo baseline:
 
@@ -197,6 +208,15 @@ LogisticRegression
 
 ```text
 medical-triage/
+├── .github/
+│   └── workflows/
+│       └── ci.yml
+├── airflow/
+│   ├── dags/
+│   │   └── medical_triage_training.py
+│   ├── Dockerfile
+│   ├── docker-compose.yml
+│   └── requirements.txt
 ├── data/
 │   ├── processed/
 │   └── raw/
@@ -208,84 +228,106 @@ medical-triage/
 ├── src/
 │   └── medical_triage/
 │       ├── application/
-│       │   ├── __init__.py
-│       │   └── use_cases.py
 │       ├── data/
-│       │   ├── __init__.py
-│       │   └── dataset_loader.py
 │       ├── domain/
-│       │   ├── __init__.py
-│       │   ├── entities.py
-│       │   └── ports.py
 │       ├── infrastructure/
-│       │   ├── __init__.py
-│       │   └── sklearn_classifier.py
 │       ├── observability/
-│       │   ├── __init__.py
-│       │   └── logging.py
 │       ├── presentation/
-│       │   ├── __init__.py
-│       │   └── api/
-│       │       ├── __init__.py
-│       │       ├── dependencies.py
-│       │       ├── main.py
-│       │       ├── routes.py
-│       │       └── schemas.py
-│       ├── training/
-│       │   ├── __init__.py
-│       │   └── train.py
-│       ├── __init__.py
-│       └── config.py
+│       └── training/
 ├── tests/
+│   ├── integration/
+│   │   └── test_api.py
 │   └── units/
 │       ├── test_classify_use_case.py
-│       └── test_dataset_loader.py
+│       ├── test_dataset_loader.py
+│       └── test_training_workflow.py
+├── .dockerignore
+├── .gitignore
+├── .pre-commit-config.yaml
+├── .python-version
 ├── Dockerfile
 ├── pyproject.toml
 ├── README.md
 └── uv.lock
 ```
 
----
+Os diretórios abaixo contêm artefatos locais ou gerados e não precisam ser versionados:
 
-## 8. Pré-requisitos
-
-Para executar o projeto em uma máquina nova:
-
-- Linux, macOS ou Windows com WSL;
-- Python compatível com o projeto;
-- `uv`;
-- Docker Engine para os testes de container;
-- acesso à internet na primeira execução do treinamento, para download do dataset.
-
-Verifique:
-
-```bash
-uv --version
-python3 --version
-docker --version
+```text
+data/raw/
+data/processed/
+models/
+airflow/logs/
 ```
 
+Isso permite que terceiros reconstruam o ambiente sem depender dos arquivos gerados originalmente pelo autor.
+
 ---
 
-## 9. Clone e instalação
+## 8. Repositório e clone por terceiros
 
-Clone o repositório e entre no diretório do projeto:
+Repositório:
+
+```text
+https://github.com/RafaExMachina/medical-triage
+```
+
+Para terceiros, prefira o clone por HTTPS, pois não exige configuração prévia de chave SSH:
+
+```bash
+git clone https://github.com/RafaExMachina/medical-triage.git
+cd medical-triage
+```
+
+Quem já possui SSH configurado pode utilizar:
 
 ```bash
 git clone git@github.com:RafaExMachina/medical-triage.git
 cd medical-triage
 ```
 
-Instale exatamente as dependências registradas no lockfile:
+---
+
+## 9. Pré-requisitos
+
+- Linux, macOS ou Windows com WSL;
+- Git;
+- Python compatível com o projeto;
+- `uv`;
+- Docker Engine;
+- Docker Compose;
+- acesso à internet na primeira execução do treinamento.
+
+Verifique:
+
+```bash
+git --version
+uv --version
+python3 --version
+docker --version
+docker compose version
+```
+
+Em Linux, se necessário:
+
+```bash
+sudo systemctl start docker
+docker info
+```
+
+---
+
+## 10. Instalação do ambiente Python
+
+Depois do clone:
 
 ```bash
 uv sync --locked
 ```
 
-Não é necessário ativar manualmente o ambiente virtual para executar os comandos descritos neste README.
+O `uv.lock` é versionado para tornar a instalação determinística.
 
-Os comandos são executados com:
+Não é necessário ativar manualmente a `.venv`; utilize:
 
 ```bash
 uv run ...
@@ -293,9 +335,33 @@ uv run ...
 
 ---
 
-## 10. Dataset
+## 11. Pre-commit
 
-O projeto não exige que os CSVs sejam baixados manualmente.
+Instale o hook local:
+
+```bash
+uv run pre-commit install
+```
+
+Valide todo o repositório:
+
+```bash
+uv run pre-commit run --all-files
+```
+
+Quality gates locais:
+
+```text
+Ruff format check
+Ruff lint
+mypy
+```
+
+---
+
+## 12. Dataset
+
+O projeto não exige download manual dos CSVs.
 
 O componente:
 
@@ -303,9 +369,7 @@ O componente:
 src/medical_triage/data/dataset_loader.py
 ```
 
-verifica `data/raw/`.
-
-Os arquivos necessários são:
+verifica `data/raw/` e utiliza:
 
 ```text
 medical_tc_train.csv
@@ -313,33 +377,19 @@ medical_tc_test.csv
 medical_tc_labels.csv
 ```
 
-Se um arquivo já existir e não estiver vazio, ele é reutilizado.
+Se um arquivo já existir e não estiver vazio, ele é reutilizado. Se estiver ausente, o loader realiza o download.
 
-Se estiver ausente, o loader realiza o download.
-
-O fluxo é:
-
-```text
-DatasetLoader.prepare()
-        │
-        ├── arquivo existente ──► reutiliza
-        │
-        └── arquivo ausente ────► download
-```
-
-### Execução isolada do loader
-
-Opcionalmente:
+Execução opcional do loader:
 
 ```bash
 uv run python -m medical_triage.data.dataset_loader
 ```
 
-Entretanto, isso não é obrigatório, pois o treinamento chama o loader automaticamente.
+O treinamento standalone já executa a preparação automaticamente.
 
 ---
 
-## 11. Treinamento
+## 13. Treinamento standalone
 
 Execute:
 
@@ -347,10 +397,10 @@ Execute:
 uv run python -m medical_triage.training.train
 ```
 
-Em uma instalação nova, o processo deverá:
+Fluxo:
 
 ```text
-download do dataset
+preparação do dataset
         ↓
 validação dos dados
         ↓
@@ -365,24 +415,17 @@ avaliação
 persistência
 ```
 
-O split utilizado na Etapa 1 é:
+O split utiliza:
 
 ```text
 90% training
 10% validation
-```
-
-com estratificação por classe e:
-
-```text
 random_state = 42
 ```
 
-O arquivo oficial `medical_tc_test.csv` é baixado, mas permanece reservado e não é utilizado para selecionar ou ajustar o baseline nesta etapa.
+O arquivo oficial `medical_tc_test.csv` permanece reservado e não é utilizado para ajustar ou selecionar o baseline atual.
 
-### Artefatos gerados
-
-Após o treinamento:
+Artefatos gerados:
 
 ```text
 models/
@@ -390,13 +433,7 @@ models/
 └── metrics.json
 ```
 
-O `classifier.joblib` contém:
-
-- pipeline treinado;
-- mapeamento dos labels;
-- versão do modelo.
-
-Versão atual:
+Versão atual do modelo:
 
 ```text
 tfidf-logreg-v1
@@ -404,36 +441,32 @@ tfidf-logreg-v1
 
 ---
 
-## 12. Resultado do baseline de classificação
-
-Treinamento validado com:
+## 14. Resultado do baseline
 
 ```text
-Training samples:   10,395
-Validation samples:  1,155
-Classes:                 5
+Training samples:    10,395
+Validation samples:   1,155
+Classes:                  5
 ```
-
-Resultado atual:
 
 | Métrica | Resultado |
 |---|---:|
 | Accuracy | 0.5931 |
 | Macro F1 | 0.5908 |
 
-Esses valores representam o **baseline da Etapa 1**, não uma otimização final do modelo.
+Esses valores representam o baseline atual, não uma otimização final do modelo.
 
 ---
 
-## 13. Executando a API localmente
+## 15. Executando a API localmente
 
-O modelo precisa ter sido treinado previamente:
+Se o modelo ainda não existir:
 
 ```bash
 uv run python -m medical_triage.training.train
 ```
 
-Depois execute:
+Depois:
 
 ```bash
 uv run uvicorn \
@@ -442,13 +475,13 @@ uv run uvicorn \
     --port 8000
 ```
 
-A API estará disponível em:
+API:
 
 ```text
 http://localhost:8000
 ```
 
-A documentação interativa do FastAPI estará em:
+Swagger/OpenAPI:
 
 ```text
 http://localhost:8000/docs
@@ -456,9 +489,7 @@ http://localhost:8000/docs
 
 ---
 
-## 14. Health check
-
-Execute:
+## 16. Health check
 
 ```bash
 curl http://localhost:8000/health
@@ -474,7 +505,7 @@ Resposta esperada:
 
 ---
 
-## 15. Classificação
+## 17. Classificação
 
 Endpoint:
 
@@ -494,7 +525,7 @@ curl \
     }'
 ```
 
-Exemplo de resposta obtida:
+Exemplo de resposta:
 
 ```json
 {
@@ -506,11 +537,11 @@ Exemplo de resposta obtida:
 }
 ```
 
-O valor de `inference_ms` varia entre requisições.
+`inference_ms` varia entre requisições.
 
 ---
 
-## 16. Validação de entrada
+## 18. Validação de entrada
 
 O campo `text` deve possuir pelo menos 20 caracteres.
 
@@ -521,156 +552,113 @@ curl \
     -X POST \
     http://localhost:8000/predict \
     -H "Content-Type: application/json" \
-    -d '{
-        "text": "short"
-    }'
+    -d '{"text": "short"}'
 ```
 
 A API responde com HTTP `422`.
 
-Exemplo:
-
-```json
-{
-  "detail": [
-    {
-      "type": "string_too_short",
-      "loc": [
-        "body",
-        "text"
-      ],
-      "msg": "String should have at least 20 characters",
-      "input": "short",
-      "ctx": {
-        "min_length": 20
-      }
-    }
-  ]
-}
-```
-
 ---
 
-## 17. Logs
+## 19. Logs
 
 A aplicação utiliza logging estruturado em saída padrão.
 
 Exemplo:
 
 ```text
-2026-08-25T17:20:00-0300 | INFO | __main__ | Starting training workflow | model_version=tfidf-logreg-v1
+2026-08-26T10:42:35-0300 | INFO | __main__ | Starting training workflow | model_version=tfidf-logreg-v1
 ```
 
-Os logs operacionais podem conter:
-
-- versão do modelo;
-- classe prevista;
-- latência;
-- quantidade de amostras;
-- estado de inicialização.
+Os logs podem conter versão do modelo, classe prevista, latência, quantidade de amostras e estado de inicialização.
 
 **O texto médico recebido pela API não deve ser registrado nos logs.**
 
-Essa decisão evita expor conteúdo potencialmente sensível.
-
 ---
 
-## 18. Qualidade de código
-
-### Formatação
+## 20. Qualidade de código e testes
 
 ```bash
 uv run ruff format --check .
-```
-
-### Lint
-
-```bash
 uv run ruff check .
-```
-
-### Tipagem
-
-```bash
 uv run mypy src
-```
-
-### Testes
-
-```bash
 uv run pytest -v
 ```
 
-Estado validado da Etapa 1:
+Estado validado ao final da Etapa 2:
 
 ```text
-Ruff:   PASS
-mypy:   PASS
-Pytest: 7 passed
+Ruff:       PASS
+mypy:       PASS
+Pytest:     12 passed
+pre-commit: PASS
 ```
 
-Os testes atuais cobrem:
+Os testes cobrem:
 
 - classificação válida;
 - texto vazio;
 - texto curto;
-- preservação de dataset existente;
-- download simulado de arquivos ausentes;
-- download apenas dos arquivos necessários;
-- criação automática do diretório de destino.
+- preservação e preparação do dataset;
+- download simulado;
+- criação de diretório;
+- `GET /health`;
+- `POST /predict`;
+- erro HTTP 422;
+- delegação de preparação para `DatasetLoader`;
+- orquestração reutilizável do treinamento.
 
-Os testes do `DatasetLoader` não dependem de internet: o download é simulado com `monkeypatch`.
+Os testes usam mocks/fakes quando apropriado para não depender de internet nem executar treinamento completo durante a suíte.
 
 ---
 
-## 19. Baseline de latência local
+## 21. CI com GitHub Actions
 
-Com a API executando localmente:
-
-```bash
-uv run python scripts/measure_latency.py \
-    --runs 200 \
-    --warmup 10
-```
-
-Configuração utilizada:
+Workflow:
 
 ```text
-Warm-up requests: 10
-Measured requests: 200
+.github/workflows/ci.yml
 ```
 
-Resultado:
+Gatilhos:
 
-| Métrica | Local |
-|---|---:|
-| Mean | 4.913 ms |
-| Median | 4.640 ms |
-| Minimum | 3.070 ms |
-| Maximum | 19.437 ms |
-| P95 | 6.852 ms |
-| P99 | 9.664 ms |
+```text
+push
+pull_request → master
+```
 
-Esse resultado é o baseline local da Etapa 1.
+Jobs:
+
+```text
+CI
+├── Quality
+│   ├── ruff format --check
+│   ├── ruff check
+│   └── mypy src
+│
+└── Tests
+    └── pytest
+```
+
+As dependências são instaladas no runner com:
+
+```bash
+uv sync --locked
+```
+
+Execuções validadas:
+
+```text
+Quality (push)          PASS
+Tests (push)            PASS
+Quality (pull_request)  PASS
+Tests (pull_request)    PASS
+```
 
 ---
 
-## 20. Docker
+## 22. Docker da API
 
-O projeto utiliza um Dockerfile **multi-stage**.
-
-A primeira etapa instala as dependências de produção com `uv`.
-
-A imagem final contém somente o ambiente necessário para executar:
-
-- Python;
-- dependências de runtime;
-- código da aplicação;
-- modelo treinado.
-
-Ferramentas de desenvolvimento e dados brutos não precisam estar presentes na imagem final.
-
-### Build
+O Dockerfile da raiz é responsável pelo serviço de inferência FastAPI.
 
 O modelo deve existir antes do build:
 
@@ -678,7 +666,7 @@ O modelo deve existir antes do build:
 uv run python -m medical_triage.training.train
 ```
 
-Depois:
+Build:
 
 ```bash
 docker build \
@@ -686,7 +674,7 @@ docker build \
     .
 ```
 
-### Execução
+Execução:
 
 ```bash
 docker run \
@@ -696,47 +684,23 @@ docker run \
     medical-triage-api:0.1.0
 ```
 
-### Health check do container
-
-Em outro terminal:
+Health check:
 
 ```bash
 curl http://localhost:8000/health
 ```
 
-Resposta esperada:
-
-```json
-{
-  "status": "healthy"
-}
-```
-
-### Teste de inferência do container
-
-```bash
-curl \
-    -X POST \
-    http://localhost:8000/predict \
-    -H "Content-Type: application/json" \
-    -d '{
-        "text": "The patient presented with acute myocardial infarction and severe coronary artery disease."
-    }'
-```
-
 ---
 
-## 21. Baseline de latência em Docker
+## 23. Baseline de latência
 
-Com o container executando:
+Com a API em execução:
 
 ```bash
 uv run python scripts/measure_latency.py \
     --runs 200 \
     --warmup 10
 ```
-
-Resultado:
 
 | Métrica | Local | Docker |
 |---|---:|---:|
@@ -747,45 +711,278 @@ Resultado:
 | P95 | 6.852 ms | 11.037 ms |
 | P99 | 9.664 ms | 16.849 ms |
 
-As duas medições foram realizadas utilizando:
-
-- a mesma máquina;
-- o mesmo modelo;
-- o mesmo endpoint;
-- o mesmo payload;
-- 10 requisições de warm-up;
-- 200 requisições medidas.
-
-Esses números formam a referência inicial para as otimizações de inferência que serão realizadas em etapas posteriores.
+Esses números serão usados como referência para futuras otimizações de inferência.
 
 ---
 
-## 22. Reprodução completa da Etapa 1
+## 24. Apache Airflow
 
-Para uma terceira pessoa reproduzir o projeto a partir de um clone novo:
+O Airflow é executado em ambiente Docker separado do runtime da API.
 
-### 1. Instalar dependências
+Isso evita adicionar a árvore de dependências do Airflow ao container enxuto de inferência.
+
+```text
+airflow/
+├── dags/
+│   └── medical_triage_training.py
+├── Dockerfile
+├── docker-compose.yml
+└── requirements.txt
+```
+
+Versões:
+
+```text
+Apache Airflow 3.3.1
+Python 3.12
+```
+
+Interface web:
+
+```text
+http://localhost:8081
+```
+
+Mapeamento:
+
+```text
+host 8081 → container 8080
+```
+
+---
+
+## 25. Subindo o Airflow
+
+Valide o Compose:
+
+```bash
+AIRFLOW_UID=$(id -u) docker compose \
+    -f airflow/docker-compose.yml \
+    config
+```
+
+Build:
+
+```bash
+AIRFLOW_UID=$(id -u) docker compose \
+    -f airflow/docker-compose.yml \
+    build
+```
+
+Suba:
+
+```bash
+AIRFLOW_UID=$(id -u) docker compose \
+    -f airflow/docker-compose.yml \
+    up -d
+```
+
+Confira:
+
+```bash
+AIRFLOW_UID=$(id -u) docker compose \
+    -f airflow/docker-compose.yml \
+    ps
+```
+
+Logs:
+
+```bash
+AIRFLOW_UID=$(id -u) docker compose \
+    -f airflow/docker-compose.yml \
+    logs -f airflow
+```
+
+---
+
+## 26. Validando e executando a DAG
+
+Liste as DAGs:
+
+```bash
+AIRFLOW_UID=$(id -u) docker compose \
+    -f airflow/docker-compose.yml \
+    exec airflow \
+    airflow dags list --local
+```
+
+A DAG esperada é:
+
+```text
+medical_triage_training
+```
+
+Confira erros de importação:
+
+```bash
+AIRFLOW_UID=$(id -u) docker compose \
+    -f airflow/docker-compose.yml \
+    exec airflow \
+    airflow dags list-import-errors --local
+```
+
+Resultado esperado:
+
+```text
+No data found
+```
+
+Liste as tasks:
+
+```bash
+AIRFLOW_UID=$(id -u) docker compose \
+    -f airflow/docker-compose.yml \
+    exec airflow \
+    airflow tasks list medical_triage_training
+```
+
+Tasks:
+
+```text
+prepare_dataset_task
+validate_dataset_task
+train_model_task
+validate_artifacts_task
+```
+
+A DAG possui `schedule=None`, portanto é disparada manualmente nesta etapa.
+
+Remova o pause:
+
+```bash
+AIRFLOW_UID=$(id -u) docker compose \
+    -f airflow/docker-compose.yml \
+    exec airflow \
+    airflow dags unpause medical_triage_training
+```
+
+Dispare:
+
+```bash
+AIRFLOW_UID=$(id -u) docker compose \
+    -f airflow/docker-compose.yml \
+    exec airflow \
+    airflow dags trigger medical_triage_training
+```
+
+Acompanhe:
+
+```bash
+AIRFLOW_UID=$(id -u) docker compose \
+    -f airflow/docker-compose.yml \
+    exec airflow \
+    airflow dags list-runs medical_triage_training
+```
+
+Execução validada:
+
+```text
+prepare_dataset_task      SUCCESS
+validate_dataset_task     SUCCESS
+train_model_task          SUCCESS
+validate_artifacts_task   SUCCESS
+DagRun                     SUCCESS
+```
+
+A execução reproduziu:
+
+```text
+Accuracy: 0.5931
+Macro F1: 0.5908
+```
+
+---
+
+## 27. Responsabilidade das tasks Airflow
+
+### `prepare_dataset_task`
+
+Garante que os arquivos necessários estejam disponíveis. Possui retry para falhas transitórias de rede.
+
+### `validate_dataset_task`
+
+Valida:
+
+- dataset não vazio;
+- classes disponíveis;
+- consistência entre labels e dados.
+
+### `train_model_task`
+
+Executa a função reutilizável:
+
+```python
+run_training()
+```
+
+Somente métricas pequenas são retornadas via XCom. DataFrames, dataset completo e modelo serializado não são enviados via XCom.
+
+### `validate_artifacts_task`
+
+Valida:
+
+- existência de `classifier.joblib`;
+- existência de `metrics.json`;
+- artefatos não vazios;
+- métricas obrigatórias;
+- métricas entre `0.0` e `1.0`;
+- consistência entre métricas retornadas e persistidas.
+
+---
+
+## 28. Reprodução completa por terceiros
+
+A sequência abaixo permite validar o projeto a partir de um clone novo.
+
+### 1. Clonar
+
+```bash
+git clone https://github.com/RafaExMachina/medical-triage.git
+cd medical-triage
+```
+
+### 2. Instalar dependências
 
 ```bash
 uv sync --locked
 ```
 
-### 2. Verificar qualidade
+### 3. Configurar pre-commit
 
 ```bash
+uv run pre-commit install
+```
+
+### 4. Validar qualidade e testes
+
+```bash
+uv run pre-commit run --all-files
 uv run ruff format --check .
 uv run ruff check .
 uv run mypy src
 uv run pytest -v
 ```
 
-### 3. Baixar dados e treinar
+Resultado esperado atualmente:
+
+```text
+12 passed
+```
+
+### 5. Baixar dados e treinar
 
 ```bash
 uv run python -m medical_triage.training.train
 ```
 
-### 4. Executar localmente
+Esse comando baixa automaticamente arquivos ausentes e gera:
+
+```text
+models/classifier.joblib
+models/metrics.json
+```
+
+### 6. Executar a API local
 
 ```bash
 uv run uvicorn \
@@ -794,13 +991,13 @@ uv run uvicorn \
     --port 8000
 ```
 
-### 5. Verificar
+### 7. Validar a API
 
 ```bash
 curl http://localhost:8000/health
 ```
 
-### 6. Fazer uma inferência
+### 8. Fazer uma inferência
 
 ```bash
 curl \
@@ -812,23 +1009,13 @@ curl \
     }'
 ```
 
-### 7. Medir latência local
-
-```bash
-uv run python scripts/measure_latency.py \
-    --runs 200 \
-    --warmup 10
-```
-
-### 8. Encerrar a API local
-
-Use:
+### 9. Encerrar a API local
 
 ```text
 Ctrl+C
 ```
 
-### 9. Criar a imagem
+### 10. Construir a API Docker
 
 ```bash
 docker build \
@@ -836,7 +1023,7 @@ docker build \
     .
 ```
 
-### 10. Executar o container
+### 11. Executar a API Docker
 
 ```bash
 docker run \
@@ -846,34 +1033,147 @@ docker run \
     medical-triage-api:0.1.0
 ```
 
-### 11. Testar o container
+### 12. Validar o container
 
 ```bash
 curl http://localhost:8000/health
 ```
 
-### 12. Medir latência do container
+### 13. Encerrar a API Docker
 
-```bash
-uv run python scripts/measure_latency.py \
-    --runs 200 \
-    --warmup 10
+```text
+Ctrl+C
 ```
 
-Se todos esses passos forem concluídos com sucesso, a implementação da Etapa 1 está reproduzida.
+### 14. Construir o Airflow
+
+```bash
+AIRFLOW_UID=$(id -u) docker compose \
+    -f airflow/docker-compose.yml \
+    build
+```
+
+### 15. Subir o Airflow
+
+```bash
+AIRFLOW_UID=$(id -u) docker compose \
+    -f airflow/docker-compose.yml \
+    up -d
+```
+
+### 16. Verificar a DAG
+
+```bash
+AIRFLOW_UID=$(id -u) docker compose \
+    -f airflow/docker-compose.yml \
+    exec airflow \
+    airflow dags list --local
+```
+
+```bash
+AIRFLOW_UID=$(id -u) docker compose \
+    -f airflow/docker-compose.yml \
+    exec airflow \
+    airflow dags list-import-errors --local
+```
+
+### 17. Executar a DAG
+
+```bash
+AIRFLOW_UID=$(id -u) docker compose \
+    -f airflow/docker-compose.yml \
+    exec airflow \
+    airflow dags unpause medical_triage_training
+```
+
+```bash
+AIRFLOW_UID=$(id -u) docker compose \
+    -f airflow/docker-compose.yml \
+    exec airflow \
+    airflow dags trigger medical_triage_training
+```
+
+### 18. Verificar a execução
+
+```bash
+AIRFLOW_UID=$(id -u) docker compose \
+    -f airflow/docker-compose.yml \
+    exec airflow \
+    airflow dags list-runs medical_triage_training
+```
+
+### 19. Verificar artefatos
+
+```bash
+ls -lh models/
+cat models/metrics.json
+```
+
+### 20. Encerrar o Airflow
+
+```bash
+AIRFLOW_UID=$(id -u) docker compose \
+    -f airflow/docker-compose.yml \
+    down
+```
+
+Se todos os passos forem concluídos, um terceiro conseguiu reconstruir e validar as Etapas 1 e 2 sem depender dos arquivos gerados originalmente pelo autor.
 
 ---
 
-## 23. Critérios de conclusão da Etapa 1
+## 29. Fluxo recomendado para contribuidores
 
-Estado atual validado:
+Antes de abrir um Pull Request:
+
+```bash
+uv sync --locked
+uv run pre-commit run --all-files
+uv run pytest -v
+```
+
+Fluxo recomendado:
 
 ```text
-[OK] DatasetLoader implementado
-[OK] Download automático do dataset
-[OK] Dataset de treino carregado
-[OK] Split treino/validação estratificado
+fork ou clone
+     │
+     ▼
+feature branch
+     │
+     ▼
+desenvolvimento
+     │
+     ▼
+pre-commit
+     │
+     ▼
+git push
+     │
+     ▼
+Pull Request → master
+     │
+     ▼
+GitHub Actions
+     │
+     ├── Quality
+     └── Tests
+```
 
+Exemplo:
+
+```bash
+git switch -c feat/minha-feature
+```
+
+Dados e artefatos de modelo não devem ser adicionados ao commit.
+
+---
+
+## 30. Critérios concluídos até a Etapa 2
+
+```text
+[OK] DatasetLoader
+[OK] Download automático do dataset
+[OK] Split treino/validação estratificado
 [OK] TF-IDF + Logistic Regression
 [OK] Modelo persistido
 [OK] Métricas persistidas
@@ -884,51 +1184,64 @@ Estado atual validado:
 [OK] GET /health
 [OK] POST /predict
 [OK] Validação de entrada
-[OK] Modelo carregado uma única vez
 [OK] Logging sem conteúdo médico
 
-[OK] Ruff
-[OK] mypy
-[OK] 7 testes unitários
-
-[OK] Docker multi-stage
+[OK] Docker multi-stage da API
 [OK] API executada em container
-[OK] Inferência executada em container
-
 [OK] Baseline local medido
 [OK] Baseline Docker medido
 
-[OK] Inferência real-time definida
+[OK] Ruff
+[OK] mypy
+[OK] pre-commit
+[OK] 12 testes
+[OK] Testes de integração da API
+
+[OK] GitHub Actions
+[OK] CI em push
+[OK] CI em pull_request
+[OK] Job Quality
+[OK] Job Tests
+
+[OK] Apache Airflow 3.3.1
+[OK] Airflow isolado em Docker
+[OK] DAG medical_triage_training
+[OK] prepare_dataset_task
+[OK] validate_dataset_task
+[OK] train_model_task
+[OK] validate_artifacts_task
+[OK] DAG sem import errors
+[OK] DagRun executada com sucesso
+
 [OK] Arquitetura AWS ECR + EC2 definida
+[OK] Reprodução por terceiros documentada
 ```
 
 ---
 
-## 24. Próximas etapas
+## 31. Próximas etapas
 
-O desenvolvimento do projeto é incremental.
-
-Itens como os abaixo **não fazem parte da implementação da Etapa 1** e serão documentados somente após serem adicionados ao projeto:
+Ainda não fazem parte da implementação atual:
 
 ```text
-GitHub Actions
-CI/CD
-Apache Airflow
 Prometheus
 Grafana
 Docker Compose de observabilidade
-retraining automático
+dashboards de latência e erros
+retraining automático por agenda ou drift
+deploy automático em AWS
 ONNX
 quantização
+pruning
 outras otimizações de inferência
 ```
 
-Isso evita que o README descreva funcionalidades que ainda não existem.
+Essas funcionalidades serão documentadas somente quando forem implementadas e validadas.
 
 ---
 
-## 25. Aviso
+## 32. Aviso
 
-Este projeto possui finalidade acadêmica e demonstra conceitos de engenharia de software, machine learning e MLOps.
+Este projeto possui finalidade acadêmica e demonstra conceitos de engenharia de software, Machine Learning e MLOps.
 
 O modelo atual não é um dispositivo médico e não deve ser utilizado para diagnóstico, priorização clínica ou tomada de decisão sobre pacientes.
