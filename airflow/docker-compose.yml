@@ -1,0 +1,26 @@
+services:
+  airflow:
+    build:
+      context: ..
+      dockerfile: airflow/Dockerfile
+
+    image: medical-triage-airflow:3.3.1
+
+    container_name: medical-triage-airflow
+
+    command: standalone
+
+    user: "${AIRFLOW_UID:-50000}:0"
+
+    ports:
+      - "8081:8080"
+
+    environment:
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+      AIRFLOW__CORE__DAGS_FOLDER: "/opt/airflow/dags"
+      PYTHONPATH: "/opt/airflow/project/src"
+
+    volumes:
+      - ../data:/opt/airflow/data
+      - ../models:/opt/airflow/models
+      - ./logs:/opt/airflow/logs
