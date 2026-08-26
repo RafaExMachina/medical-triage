@@ -670,7 +670,7 @@ Build:
 
 ```bash
 docker build \
-    -t medical-triage-api:0.1.0 \
+    -t medical-triage-api:0.2.0 \
     .
 ```
 
@@ -681,7 +681,7 @@ docker run \
     --rm \
     --name medical-triage-api \
     -p 8000:8000 \
-    medical-triage-api:0.1.0
+    medical-triage-api:0.2.0
 ```
 
 Health check:
@@ -1019,7 +1019,7 @@ Ctrl+C
 
 ```bash
 docker build \
-    -t medical-triage-api:0.1.0 \
+    -t medical-triage-api:0.2.0 \
     .
 ```
 
@@ -1030,7 +1030,7 @@ docker run \
     --rm \
     --name medical-triage-api \
     -p 8000:8000 \
-    medical-triage-api:0.1.0
+    medical-triage-api:0.2.0
 ```
 
 ### 12. Validar o container
