@@ -76,6 +76,20 @@ def test_health_endpoint_should_return_healthy(
     }
 
 
+def test_metrics_endpoint_should_expose_prometheus_metrics(
+    client,
+) -> None:
+    """Ensure that Prometheus metrics are exposed."""
+    client.get("/health")
+
+    response = client.get("/metrics")
+
+    assert response.status_code == 200
+    assert "medical_triage_http_requests_total" in response.text
+    assert "medical_triage_http_request_duration_seconds" in response.text
+    assert "medical_triage_predictions_total" in response.text
+
+
 def test_predict_endpoint_should_return_classification(
     client: TestClient,
 ) -> None:

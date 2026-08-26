@@ -10,6 +10,7 @@ from medical_triage.observability.logging import (
     configure_logging,
     get_logger,
 )
+from medical_triage.observability.middleware import PrometheusMiddleware
 from medical_triage.presentation.api.dependencies import (
     get_classification_use_case,
 )
@@ -55,5 +56,5 @@ app = FastAPI(
     description="REST API for medical text classification.",
     lifespan=lifespan,
 )
-
+app.add_middleware(PrometheusMiddleware)
 app.include_router(router)

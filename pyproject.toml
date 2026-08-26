@@ -9,6 +9,7 @@ dependencies = [
     "fastapi",
     "joblib",
     "pandas",
+    "prometheus-client>=0.26.0",
     "scikit-learn",
     "uvicorn[standard]",
 ]

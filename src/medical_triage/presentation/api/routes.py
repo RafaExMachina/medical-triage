@@ -2,11 +2,13 @@
 
 from time import perf_counter
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Response
+from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 
 from medical_triage.application.use_cases import (
     ClassifyMedicalTextUseCase,
 )
+from medical_triage.observability.metrics import PREDICTIONS_TOTAL
 from medical_triage.presentation.api.dependencies import (
     get_classification_use_case,
 )
@@ -17,6 +19,19 @@ from medical_triage.presentation.api.schemas import (
 )
 
 router = APIRouter()
+
+
+@router.get(
+    "/metrics",
+    include_in_schema=False,
+    response_class=Response,
+)
+def metrics() -> Response:
+    """Expose application metrics in Prometheus format."""
+    return Response(
+        content=generate_latest(),
+        media_type=CONTENT_TYPE_LATEST,
+    )
 
 
 @router.get(
@@ -67,6 +82,10 @@ def predict(
         ) from error
 
     inference_ms = (perf_counter() - start_time) * 1000
+
+    PREDICTIONS_TOTAL.labels(
+        label_name=result.label_name,
+    ).inc()
 
     return ClassificationResponse(
         label_id=result.label_id,
