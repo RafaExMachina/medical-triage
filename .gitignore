@@ -30,7 +30,9 @@ data/processed/
 # ------------------------------------------------------------
 # Trained model artifacts
 # ------------------------------------------------------------
-models/
+models/*
+!models/classifier.onnx
+!models/classifier_onnx_metadata.json
 
 # ------------------------------------------------------------
 # Logs

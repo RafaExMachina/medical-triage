@@ -1,0 +1,28 @@
+{
+  "model_version": "tfidf-logreg-v1",
+  "source_artifact": "classifier.joblib",
+  "onnx_artifact": "classifier.onnx",
+  "labels": {
+    "1": "neoplasms",
+    "2": "digestive system diseases",
+    "3": "nervous system diseases",
+    "4": "cardiovascular diseases",
+    "5": "general pathological conditions"
+  },
+  "optimization": "sklearn-to-onnx",
+  "tfidf_conversion": {
+    "tokenexp": "",
+    "original_token_pattern": "(?u)\\b\\w\\w+\\b",
+    "ngram_range": [
+      1,
+      2
+    ],
+    "vocabulary_size": 50000
+  },
+  "requested_target_opset": 18,
+  "effective_opsets": {
+    "ai.onnx.ml": 1,
+    "ai.onnx": 16,
+    "com.microsoft": 1
+  }
+}
