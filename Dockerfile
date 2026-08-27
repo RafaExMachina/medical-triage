@@ -32,6 +32,19 @@ WORKDIR /app
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
+# -------------------------------------------------------------------
+# Locale required by ONNX Runtime StringNormalizer.
+# The converted TF-IDF pipeline requires en_US.UTF-8.
+# -------------------------------------------------------------------
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends locales \
+    && sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen \
+    && locale-gen \
+    && rm -rf /var/lib/apt/lists/*
+
+ENV LANG=en_US.UTF-8
+ENV LC_ALL=en_US.UTF-8
+
 # Add the virtual environment binaries to PATH.
 ENV PATH="/app/.venv/bin:$PATH"
 
@@ -44,7 +57,8 @@ COPY --from=builder /app/.venv /app/.venv
 # Copy application source code.
 COPY src ./src
 
-# Copy trained model artifacts.
+# Copy production model artifacts.
+# .dockerignore restricts which files from models/ enter the image.
 COPY models ./models
 
 EXPOSE 8000

@@ -7,6 +7,13 @@ services:
     ports:
       - "8000:8000"
 
+    environment:
+      MODEL_BACKEND: onnx
+      ONNX_MODEL_PATH: models/classifier.onnx
+      ONNX_METADATA_PATH: models/classifier_onnx_metadata.json
+      APP_NAME: Medical Triage API
+      APP_VERSION: 0.3.0
+
     healthcheck:
       test:
         [
@@ -59,7 +66,8 @@ services:
       - ./monitoring/grafana/dashboards:/var/lib/grafana/provisioned-dashboards:ro
 
     depends_on:
-      - prometheus
+      prometheus:
+        condition: service_started
 
     restart: unless-stopped
 

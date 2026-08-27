@@ -22,3 +22,7 @@ htmlcov/
 *.log
 
 .gitignore
+# Production model artifacts
+models/*
+!models/classifier.onnx
+!models/classifier_onnx_metadata.json
