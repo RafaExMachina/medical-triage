@@ -1,10 +1,11 @@
-# Medical Triage — Etapas 1 e 2
+# Medical Triage — Etapas 1, 2 e 3
 
-**Versão atual: `0.2.0`**
+**Versão atual do pacote: `0.2.0`**  
+**Escopo documentado: Etapas 1, 2 e 3**
 
 API de classificação de textos médicos desenvolvida como base para um pipeline incremental de MLOps.
 
-> **Escopo atual:** este README documenta funcionalidades já implementadas e validadas nas **Etapas 1 e 2**. A Etapa 1 cobre baseline de NLP, FastAPI, Docker e medição de latência. A Etapa 2 adiciona testes de integração, pre-commit, CI com GitHub Actions e pipeline de treinamento com Apache Airflow. Prometheus, Grafana e otimizações de inferência serão adicionados somente quando forem implementados.
+> **Escopo atual:** a Etapa 1 implementa o baseline de NLP, FastAPI, Docker e medição de latência. A Etapa 2 adiciona testes de integração, pre-commit, CI com GitHub Actions e pipeline de treinamento com Apache Airflow. A Etapa 3 adiciona instrumentação Prometheus, Docker Compose de observabilidade e dashboard Grafana provisionado automaticamente.
 
 ---
 
@@ -12,7 +13,7 @@ API de classificação de textos médicos desenvolvida como base para um pipelin
 
 O projeto demonstra, de forma incremental e reproduzível, como construir e evoluir um serviço de Machine Learning para classificação de textos médicos.
 
-Já foram implementados:
+Funcionalidades implementadas:
 
 - download automático do dataset;
 - treinamento de um classificador baseline;
@@ -20,13 +21,20 @@ Já foram implementados:
 - API REST com FastAPI;
 - validação de entrada;
 - Docker multi-stage para inferência;
+- medição de latência local e em Docker;
 - testes unitários e de integração;
 - Ruff, mypy e pre-commit;
 - CI com GitHub Actions;
 - pipeline de treinamento com Apache Airflow;
 - validação do dataset antes do treinamento;
 - validação dos artefatos após o treinamento;
-- medição de latência local e em Docker;
+- endpoint `/metrics`;
+- métricas Prometheus de tráfego, latência e predições;
+- monitoramento do processo Python;
+- Prometheus em Docker Compose;
+- Grafana em Docker Compose;
+- datasource Prometheus provisionado automaticamente;
+- dashboard Grafana provisionado automaticamente;
 - documentação de reprodução para terceiros.
 
 ---
@@ -51,7 +59,124 @@ Não é feita conversão artificial entre categoria de doença e nível de urgê
 
 ---
 
-## 3. Arquitetura da aplicação
+## 3. Evolução por etapas
+
+### Etapa 1 — baseline, API e Docker
+
+```text
+Medical Abstracts TC Corpus
+          │
+          ▼
+     DatasetLoader
+          │
+          ▼
+Stratified Train/Validation Split
+          │
+          ▼
+        TF-IDF
+          │
+          ▼
+ Logistic Regression
+          │
+     ┌────┴─────────────┐
+     ▼                  ▼
+classifier.joblib   metrics.json
+          │
+          ▼
+       FastAPI
+          │
+          ▼
+        Docker
+```
+
+Principais entregas:
+
+- baseline de NLP;
+- API `/health` e `/predict`;
+- validação Pydantic;
+- imagem Docker multi-stage;
+- benchmark de latência;
+- logging sem registrar o texto médico.
+
+### Etapa 2 — qualidade, CI/CD e Airflow
+
+```text
+feature branch
+     │
+     ▼
+pre-commit
+     │
+     ▼
+GitHub Actions
+ ┌───┴────┐
+ ▼        ▼
+Quality  Tests
+```
+
+Treinamento orquestrado:
+
+```text
+prepare_dataset_task
+        │
+        ▼
+validate_dataset_task
+        │
+        ▼
+train_model_task
+        │
+        ▼
+validate_artifacts_task
+```
+
+Principais entregas:
+
+- testes de integração;
+- Ruff;
+- mypy;
+- pre-commit;
+- GitHub Actions;
+- Airflow 3.3.1;
+- DAG de treinamento;
+- validações antes e depois do treinamento.
+
+### Etapa 3 — observabilidade
+
+```text
+                  Docker Compose
+
+┌──────────────────────────────────────────────┐
+│                                              │
+│        FastAPI :8000                         │
+│        /health                               │
+│        /predict                              │
+│        /metrics                              │
+│            │                                 │
+│            │ scrape                          │
+│            ▼                                 │
+│        Prometheus :9090                      │
+│            │                                 │
+│            │ PromQL                          │
+│            ▼                                 │
+│        Grafana :3000                         │
+│                                              │
+└──────────────────────────────────────────────┘
+```
+
+Principais entregas:
+
+- instrumentação com `prometheus-client`;
+- Counter de requisições HTTP;
+- Histogram de latência HTTP;
+- Counter de predições por classe;
+- métricas do processo Python;
+- Prometheus;
+- Grafana;
+- dashboard com seis painéis;
+- provisionamento automático de datasource e dashboard.
+
+---
+
+## 4. Arquitetura da aplicação
 
 A aplicação utiliza organização inspirada em Clean Architecture e princípios SOLID.
 
@@ -78,49 +203,26 @@ classifier.joblib
 TF-IDF + Logistic Regression
 ```
 
-O treinamento baseline segue:
+Estrutura lógica:
 
 ```text
-Medical Abstracts TC Corpus
-          │
-          ▼
-     DatasetLoader
-          │
-          ▼
-    Training Dataset
-          │
-          ▼
-Stratified Train/Validation Split
-          │
-          ▼
-        TF-IDF
-          │
-          ▼
- Logistic Regression
-          │
-       ┌──┴──────────────┐
-       ▼                 ▼
-classifier.joblib    metrics.json
+presentation
+     │
+     ▼
+application
+     │
+     ▼
+domain
+     ▲
+     │
+infrastructure
 ```
 
-Na Etapa 2, o treinamento também pode ser orquestrado pelo Airflow:
-
-```text
-prepare_dataset_task
-        │
-        ▼
-validate_dataset_task
-        │
-        ▼
-train_model_task
-        │
-        ▼
-validate_artifacts_task
-```
+A camada `observability` concentra logging e instrumentação de métricas.
 
 ---
 
-## 4. Inferência em tempo real
+## 5. Inferência em tempo real
 
 A API utiliza inferência **real-time**:
 
@@ -141,7 +243,7 @@ Uma abordagem batch seria mais adequada para processamento periódico em grande 
 
 ---
 
-## 5. Arquitetura de cloud selecionada
+## 6. Arquitetura de cloud selecionada
 
 A arquitetura planejada para deploy é:
 
@@ -170,31 +272,17 @@ O Amazon ECR foi selecionado como registro de imagem e uma instância EC2 como a
 
 ---
 
-## 6. Tecnologias
+## 7. Tecnologias
 
 ### Aplicação e Machine Learning
 
-- Python 3.12
-- uv
-- FastAPI
-- Uvicorn
-- Scikit-learn
-- Pandas
-- Joblib
-
-### Qualidade
-
-- Pytest
-- Ruff
-- mypy
-- pre-commit
-
-### MLOps e infraestrutura
-
-- Docker
-- Docker Compose
-- GitHub Actions
-- Apache Airflow 3.3.1
+- Python 3.12;
+- uv;
+- FastAPI;
+- Uvicorn;
+- Scikit-learn;
+- Pandas;
+- Joblib.
 
 Modelo baseline:
 
@@ -204,9 +292,35 @@ TfidfVectorizer
 LogisticRegression
 ```
 
+### Qualidade
+
+- Pytest;
+- Ruff;
+- mypy;
+- pre-commit.
+
+### CI/CD e orquestração
+
+- Git;
+- GitHub;
+- GitHub Actions;
+- Apache Airflow 3.3.1.
+
+### Observabilidade
+
+- `prometheus-client`;
+- Prometheus;
+- PromQL;
+- Grafana.
+
+### Infraestrutura
+
+- Docker;
+- Docker Compose.
+
 ---
 
-## 7. Estrutura do projeto
+## 8. Estrutura do projeto
 
 ```text
 medical-triage/
@@ -222,9 +336,22 @@ medical-triage/
 ├── data/
 │   ├── processed/
 │   └── raw/
+├── docs/
+│   └── observability-plan.md
 ├── models/
 │   ├── classifier.joblib
 │   └── metrics.json
+├── monitoring/
+│   ├── grafana/
+│   │   ├── dashboards/
+│   │   │   └── medical-triage.json
+│   │   └── provisioning/
+│   │       ├── dashboards/
+│   │       │   └── dashboards.yml
+│   │       └── datasources/
+│   │           └── prometheus.yml
+│   └── prometheus/
+│       └── prometheus.yml
 ├── scripts/
 │   └── measure_latency.py
 ├── src/
@@ -234,7 +361,11 @@ medical-triage/
 │       ├── domain/
 │       ├── infrastructure/
 │       ├── observability/
+│       │   ├── logging.py
+│       │   ├── metrics.py
+│       │   └── middleware.py
 │       ├── presentation/
+│       │   └── api/
 │       └── training/
 ├── tests/
 │   ├── integration/
@@ -247,13 +378,14 @@ medical-triage/
 ├── .gitignore
 ├── .pre-commit-config.yaml
 ├── .python-version
+├── docker-compose.yml
 ├── Dockerfile
 ├── pyproject.toml
 ├── README.md
 └── uv.lock
 ```
 
-Os diretórios abaixo contêm artefatos locais ou gerados e não precisam ser versionados:
+Os diretórios abaixo contêm dados ou artefatos gerados localmente e não precisam ser versionados:
 
 ```text
 data/raw/
@@ -262,11 +394,11 @@ models/
 airflow/logs/
 ```
 
-Isso permite que terceiros reconstruam o ambiente sem depender dos arquivos gerados originalmente pelo autor.
+O modelo precisa ser gerado localmente antes do build da imagem da API.
 
 ---
 
-## 8. Repositório e clone por terceiros
+## 9. Repositório e clone
 
 Repositório:
 
@@ -274,14 +406,14 @@ Repositório:
 https://github.com/RafaExMachina/medical-triage
 ```
 
-Para terceiros, prefira o clone por HTTPS, pois não exige configuração prévia de chave SSH:
+Clone por HTTPS:
 
 ```bash
 git clone https://github.com/RafaExMachina/medical-triage.git
 cd medical-triage
 ```
 
-Quem já possui SSH configurado pode utilizar:
+Clone por SSH:
 
 ```bash
 git clone git@github.com:RafaExMachina/medical-triage.git
@@ -290,7 +422,7 @@ cd medical-triage
 
 ---
 
-## 9. Pré-requisitos
+## 10. Pré-requisitos
 
 - Linux, macOS ou Windows com WSL;
 - Git;
@@ -319,7 +451,7 @@ docker info
 
 ---
 
-## 10. Instalação do ambiente Python
+## 11. Instalação do ambiente Python
 
 Depois do clone:
 
@@ -335,28 +467,10 @@ Não é necessário ativar manualmente a `.venv`; utilize:
 uv run ...
 ```
 
----
-
-## 11. Pre-commit
-
 Instale o hook local:
 
 ```bash
 uv run pre-commit install
-```
-
-Valide todo o repositório:
-
-```bash
-uv run pre-commit run --all-files
-```
-
-Quality gates locais:
-
-```text
-Ruff format check
-Ruff lint
-mypy
 ```
 
 ---
@@ -381,7 +495,7 @@ medical_tc_labels.csv
 
 Se um arquivo já existir e não estiver vazio, ele é reutilizado. Se estiver ausente, o loader realiza o download.
 
-Execução opcional do loader:
+Execução opcional:
 
 ```bash
 uv run python -m medical_triage.data.dataset_loader
@@ -452,7 +566,7 @@ Classes:                  5
 ```
 
 | Métrica | Resultado |
-|---|---:|
+| --- | ---: |
 | Accuracy | 0.5931 |
 | Macro F1 | 0.5908 |
 
@@ -491,13 +605,15 @@ http://localhost:8000/docs
 
 ---
 
-## 16. Health check
+## 16. Endpoints
+
+### `GET /health`
 
 ```bash
 curl http://localhost:8000/health
 ```
 
-Resposta esperada:
+Resposta:
 
 ```json
 {
@@ -505,17 +621,7 @@ Resposta esperada:
 }
 ```
 
----
-
-## 17. Classificação
-
-Endpoint:
-
-```text
-POST /predict
-```
-
-Exemplo:
+### `POST /predict`
 
 ```bash
 curl \
@@ -523,7 +629,7 @@ curl \
     http://localhost:8000/predict \
     -H "Content-Type: application/json" \
     -d '{
-        "text": "The patient presented with acute myocardial infarction and severe coronary artery disease."
+      "text": "The patient presented with acute myocardial infarction and severe coronary artery disease."
     }'
 ```
 
@@ -541,9 +647,19 @@ Exemplo de resposta:
 
 `inference_ms` varia entre requisições.
 
+### `GET /metrics`
+
+O endpoint expõe métricas no formato Prometheus:
+
+```bash
+curl http://localhost:8000/metrics
+```
+
+Ele não aparece no schema OpenAPI da aplicação.
+
 ---
 
-## 18. Validação de entrada
+## 17. Validação de entrada
 
 O campo `text` deve possuir pelo menos 20 caracteres.
 
@@ -561,7 +677,7 @@ A API responde com HTTP `422`.
 
 ---
 
-## 19. Logs
+## 18. Logs e privacidade
 
 A aplicação utiliza logging estruturado em saída padrão.
 
@@ -575,9 +691,13 @@ Os logs podem conter versão do modelo, classe prevista, latência, quantidade d
 
 **O texto médico recebido pela API não deve ser registrado nos logs.**
 
+A mesma regra é aplicada às métricas: o texto recebido não é usado como label Prometheus.
+
 ---
 
-## 20. Qualidade de código e testes
+## 19. Qualidade de código e testes
+
+Quality gates:
 
 ```bash
 uv run ruff format --check .
@@ -586,16 +706,22 @@ uv run mypy src
 uv run pytest -v
 ```
 
-Estado validado ao final da Etapa 2:
+Ou, de forma consolidada:
+
+```bash
+uv run pre-commit run --all-files
+```
+
+Estado validado ao final da Etapa 3:
 
 ```text
 Ruff:       PASS
 mypy:       PASS
-Pytest:     12 passed
+Pytest:     13 passed
 pre-commit: PASS
 ```
 
-Os testes cobrem:
+Os testes cobrem, entre outros:
 
 - classificação válida;
 - texto vazio;
@@ -605,15 +731,19 @@ Os testes cobrem:
 - criação de diretório;
 - `GET /health`;
 - `POST /predict`;
-- erro HTTP 422;
+- erro HTTP `422`;
+- `GET /metrics`;
+- exposição das métricas Prometheus;
 - delegação de preparação para `DatasetLoader`;
 - orquestração reutilizável do treinamento.
 
 Os testes usam mocks/fakes quando apropriado para não depender de internet nem executar treinamento completo durante a suíte.
 
+> A suíte pode exibir um `StarletteDeprecationWarning` relacionado ao `TestClient/httpx`. O warning não impede a execução dos testes.
+
 ---
 
-## 21. CI com GitHub Actions
+## 20. CI com GitHub Actions
 
 Workflow:
 
@@ -647,28 +777,28 @@ As dependências são instaladas no runner com:
 uv sync --locked
 ```
 
-Execuções validadas:
+Fluxo esperado:
 
 ```text
-Quality (push)          PASS
-Tests (push)            PASS
-Quality (pull_request)  PASS
-Tests (pull_request)    PASS
+push / pull request
+        │
+        ├── Quality
+        └── Tests
 ```
 
 ---
 
-## 22. Docker da API
+## 21. Docker da API
 
-O Dockerfile da raiz é responsável pelo serviço de inferência FastAPI.
+O `Dockerfile` da raiz é responsável pelo serviço de inferência FastAPI.
 
-O modelo deve existir antes do build:
+Como `models/` contém artefatos gerados e não é versionado, o modelo deve existir antes do build:
 
 ```bash
 uv run python -m medical_triage.training.train
 ```
 
-Build:
+Build standalone:
 
 ```bash
 docker build \
@@ -676,7 +806,7 @@ docker build \
     .
 ```
 
-Execução:
+Execução standalone:
 
 ```bash
 docker run \
@@ -692,9 +822,11 @@ Health check:
 curl http://localhost:8000/health
 ```
 
+A imagem usa build multi-stage e copia `src/` e `models/` para o runtime.
+
 ---
 
-## 23. Baseline de latência
+## 22. Baseline de latência
 
 Com a API em execução:
 
@@ -705,7 +837,7 @@ uv run python scripts/measure_latency.py \
 ```
 
 | Métrica | Local | Docker |
-|---|---:|---:|
+| --- | ---: | ---: |
 | Mean | 4.913 ms | 7.909 ms |
 | Median | 4.640 ms | 7.509 ms |
 | Minimum | 3.070 ms | 4.637 ms |
@@ -713,11 +845,11 @@ uv run python scripts/measure_latency.py \
 | P95 | 6.852 ms | 11.037 ms |
 | P99 | 9.664 ms | 16.849 ms |
 
-Esses números serão usados como referência para futuras otimizações de inferência.
+Esses números são referência para futuras otimizações de inferência.
 
 ---
 
-## 24. Apache Airflow
+## 23. Apache Airflow
 
 O Airflow é executado em ambiente Docker separado do runtime da API.
 
@@ -732,7 +864,7 @@ airflow/
 └── requirements.txt
 ```
 
-Versões:
+Versões validadas:
 
 ```text
 Apache Airflow 3.3.1
@@ -751,11 +883,9 @@ Mapeamento:
 host 8081 → container 8080
 ```
 
----
+### Subir o Airflow
 
-## 25. Subindo o Airflow
-
-Valide o Compose:
+Validar:
 
 ```bash
 AIRFLOW_UID=$(id -u) docker compose \
@@ -771,7 +901,7 @@ AIRFLOW_UID=$(id -u) docker compose \
     build
 ```
 
-Suba:
+Subir:
 
 ```bash
 AIRFLOW_UID=$(id -u) docker compose \
@@ -779,27 +909,7 @@ AIRFLOW_UID=$(id -u) docker compose \
     up -d
 ```
 
-Confira:
-
-```bash
-AIRFLOW_UID=$(id -u) docker compose \
-    -f airflow/docker-compose.yml \
-    ps
-```
-
-Logs:
-
-```bash
-AIRFLOW_UID=$(id -u) docker compose \
-    -f airflow/docker-compose.yml \
-    logs -f airflow
-```
-
----
-
-## 26. Validando e executando a DAG
-
-Liste as DAGs:
+### Validar a DAG
 
 ```bash
 AIRFLOW_UID=$(id -u) docker compose \
@@ -808,34 +918,19 @@ AIRFLOW_UID=$(id -u) docker compose \
     airflow dags list --local
 ```
 
-A DAG esperada é:
+DAG:
 
 ```text
 medical_triage_training
 ```
 
-Confira erros de importação:
+Import errors:
 
 ```bash
 AIRFLOW_UID=$(id -u) docker compose \
     -f airflow/docker-compose.yml \
     exec airflow \
     airflow dags list-import-errors --local
-```
-
-Resultado esperado:
-
-```text
-No data found
-```
-
-Liste as tasks:
-
-```bash
-AIRFLOW_UID=$(id -u) docker compose \
-    -f airflow/docker-compose.yml \
-    exec airflow \
-    airflow tasks list medical_triage_training
 ```
 
 Tasks:
@@ -849,7 +944,7 @@ validate_artifacts_task
 
 A DAG possui `schedule=None`, portanto é disparada manualmente nesta etapa.
 
-Remova o pause:
+### Executar
 
 ```bash
 AIRFLOW_UID=$(id -u) docker compose \
@@ -858,8 +953,6 @@ AIRFLOW_UID=$(id -u) docker compose \
     airflow dags unpause medical_triage_training
 ```
 
-Dispare:
-
 ```bash
 AIRFLOW_UID=$(id -u) docker compose \
     -f airflow/docker-compose.yml \
@@ -867,7 +960,7 @@ AIRFLOW_UID=$(id -u) docker compose \
     airflow dags trigger medical_triage_training
 ```
 
-Acompanhe:
+Acompanhar:
 
 ```bash
 AIRFLOW_UID=$(id -u) docker compose \
@@ -883,19 +976,27 @@ prepare_dataset_task      SUCCESS
 validate_dataset_task     SUCCESS
 train_model_task          SUCCESS
 validate_artifacts_task   SUCCESS
-DagRun                     SUCCESS
+DagRun                    SUCCESS
 ```
 
-A execução reproduziu:
+Métricas reproduzidas:
 
 ```text
 Accuracy: 0.5931
 Macro F1: 0.5908
 ```
 
+Encerrar:
+
+```bash
+AIRFLOW_UID=$(id -u) docker compose \
+    -f airflow/docker-compose.yml \
+    down
+```
+
 ---
 
-## 27. Responsabilidade das tasks Airflow
+## 24. Responsabilidade das tasks Airflow
 
 ### `prepare_dataset_task`
 
@@ -932,9 +1033,474 @@ Valida:
 
 ---
 
-## 28. Reprodução completa por terceiros
+## 25. Observabilidade
 
-A sequência abaixo permite validar o projeto a partir de um clone novo.
+A Etapa 3 implementa observabilidade da API com Prometheus e Grafana.
+
+Documentação detalhada:
+
+```text
+docs/observability-plan.md
+```
+
+Arquitetura:
+
+```text
+FastAPI :8000
+    │
+    │ GET /metrics
+    ▼
+Prometheus :9090
+    │
+    │ PromQL
+    ▼
+Grafana :3000
+```
+
+O Prometheus utiliza o modelo `pull` e consulta:
+
+```text
+http://api:8000/metrics
+```
+
+dentro da rede do Docker Compose.
+
+---
+
+## 26. Métricas Prometheus
+
+### Requisições HTTP
+
+```text
+medical_triage_http_requests_total
+```
+
+Tipo: `Counter`
+
+Labels controladas:
+
+```text
+method
+endpoint
+status
+```
+
+Exemplo:
+
+```promql
+medical_triage_http_requests_total{
+  endpoint="/predict",
+  method="POST",
+  status="200"
+}
+```
+
+### Latência HTTP
+
+```text
+medical_triage_http_request_duration_seconds
+```
+
+Tipo: `Histogram`
+
+Labels:
+
+```text
+method
+endpoint
+```
+
+P95 da inferência:
+
+```promql
+histogram_quantile(
+  0.95,
+  sum by (le) (
+    rate(
+      medical_triage_http_request_duration_seconds_bucket{
+        endpoint="/predict",
+        method="POST"
+      }[5m]
+    )
+  )
+)
+```
+
+### Predições
+
+```text
+medical_triage_predictions_total
+```
+
+Tipo: `Counter`
+
+Label:
+
+```text
+label_name
+```
+
+Distribuição:
+
+```promql
+sum by (label_name) (
+  medical_triage_predictions_total
+)
+```
+
+### Memória da API
+
+A biblioteca cliente também expõe métricas do processo Python.
+
+O dashboard utiliza:
+
+```promql
+process_resident_memory_bytes{
+  job="medical-triage-api"
+}
+```
+
+### Disponibilidade
+
+```promql
+up{job="medical-triage-api"}
+```
+
+Interpretação:
+
+```text
+1 = target disponível
+0 = target indisponível
+```
+
+---
+
+## 27. Consultas PromQL do dashboard
+
+### Throughput
+
+```promql
+sum(
+  rate(
+    medical_triage_http_requests_total{
+      endpoint="/predict",
+      method="POST",
+      status=~"2.."
+    }[1m]
+  )
+)
+or vector(0)
+```
+
+### P95
+
+```promql
+histogram_quantile(
+  0.95,
+  sum by (le) (
+    rate(
+      medical_triage_http_request_duration_seconds_bucket{
+        endpoint="/predict",
+        method="POST"
+      }[5m]
+    )
+  )
+)
+```
+
+### Error rate
+
+```promql
+(
+  sum(
+    rate(
+      medical_triage_http_requests_total{
+        endpoint="/predict",
+        method="POST",
+        status=~"4..|5.."
+      }[5m]
+    )
+  )
+  /
+  clamp_min(
+    sum(
+      rate(
+        medical_triage_http_requests_total{
+          endpoint="/predict",
+          method="POST"
+        }[5m]
+      )
+    ),
+    0.000001
+  )
+)
+or vector(0)
+```
+
+A unidade do painel Grafana é `percentunit`; portanto, um valor PromQL `0.2` é exibido como `20%`.
+
+### Total de predições
+
+```promql
+sum(medical_triage_predictions_total) or vector(0)
+```
+
+### Distribuição
+
+```promql
+sum by (label_name) (
+  medical_triage_predictions_total
+)
+```
+
+---
+
+## 28. Dashboard Grafana
+
+Dashboard:
+
+```text
+Medical Triage - Observability
+```
+
+Arquivo versionado:
+
+```text
+monitoring/grafana/dashboards/medical-triage.json
+```
+
+Datasource:
+
+```text
+Prometheus
+```
+
+URL utilizada dentro da rede Docker:
+
+```text
+http://prometheus:9090
+```
+
+O dashboard possui seis painéis:
+
+| Painel | Objetivo |
+| --- | --- |
+| Total Predictions | total acumulado de predições |
+| Inference Throughput | requisições de inferência por segundo |
+| P95 Inference HTTP Latency | percentil 95 da latência HTTP de `/predict` |
+| Prediction Error Rate | proporção de respostas 4xx e 5xx |
+| Prediction Distribution | distribuição das classes previstas |
+| API Memory Usage | memória residente do processo da API |
+
+O datasource e o dashboard são provisionados automaticamente por arquivos versionados no repositório.
+
+---
+
+## 29. Docker Compose de observabilidade
+
+O `docker-compose.yml` da raiz executa:
+
+```text
+api
+prometheus
+grafana
+```
+
+Portas:
+
+| Serviço | Porta |
+| --- | ---: |
+| FastAPI | `8000` |
+| Prometheus | `9090` |
+| Grafana | `3000` |
+
+O Airflow continua usando um Compose separado:
+
+```text
+airflow/docker-compose.yml
+```
+
+### Pré-condição
+
+O modelo deve existir antes do build da API:
+
+```bash
+uv run python -m medical_triage.training.train
+```
+
+### Validar a configuração
+
+```bash
+docker compose config
+docker compose config --services
+```
+
+Serviços esperados:
+
+```text
+api
+prometheus
+grafana
+```
+
+### Subir a stack
+
+```bash
+docker compose up -d --build
+```
+
+### Conferir
+
+```bash
+docker compose ps
+```
+
+### Validar serviços
+
+FastAPI:
+
+```bash
+curl http://localhost:8000/health
+```
+
+Prometheus:
+
+```bash
+curl http://localhost:9090/-/healthy
+```
+
+Grafana:
+
+```bash
+curl http://localhost:3000/api/health
+```
+
+Prometheus target:
+
+```bash
+curl -sG \
+  --data-urlencode 'query=up{job="medical-triage-api"}' \
+  http://localhost:9090/api/v1/query \
+  | python -m json.tool
+```
+
+Resultado esperado:
+
+```text
+instance="api:8000"
+job="medical-triage-api"
+value="1"
+```
+
+### Grafana
+
+Abra:
+
+```text
+http://localhost:3000
+```
+
+Credenciais locais configuradas para o ambiente acadêmico:
+
+```text
+user:     admin
+password: admin
+```
+
+> Essas credenciais são apenas para desenvolvimento local. Em produção, use secrets e uma política de autenticação apropriada.
+
+### Encerrar
+
+```bash
+docker compose down
+```
+
+O comando acima remove containers e rede, mas preserva os volumes. Para remover também os volumes:
+
+```bash
+docker compose down -v
+```
+
+---
+
+## 30. Conflito com Prometheus instalado no host
+
+Se existir um Prometheus instalado diretamente no Ubuntu, ele pode ocupar a porta `9090` antes do container.
+
+Diagnóstico:
+
+```bash
+sudo ss -ltnp | grep ':9090'
+```
+
+Se aparecer um processo `prometheus` do `systemd`, pare-o antes de iniciar a stack:
+
+```bash
+sudo systemctl stop prometheus
+```
+
+Se quiser impedir o início automático durante o desenvolvimento:
+
+```bash
+sudo systemctl disable --now prometheus
+```
+
+Para reativar depois:
+
+```bash
+sudo systemctl enable --now prometheus
+```
+
+Após iniciar o Compose, é normal a porta aparecer associada ao Docker:
+
+```bash
+sudo ss -ltnp | grep ':9090'
+```
+
+---
+
+## 31. Segurança e cardinalidade das métricas
+
+O projeto não utiliza o texto médico como label Prometheus.
+
+Labels controladas:
+
+```text
+method
+endpoint
+status
+label_name
+```
+
+Isso reduz:
+
+- risco de exposição de conteúdo clínico;
+- risco de incluir dados pessoais nas métricas;
+- alta cardinalidade;
+- crescimento desnecessário das séries temporais.
+
+O endpoint `/metrics` também é excluído da contabilização das métricas HTTP da aplicação para que o próprio scrape do Prometheus não polua o tráfego monitorado.
+
+---
+
+## 32. Thresholds sugeridos
+
+Os valores abaixo são referências iniciais para o projeto acadêmico e precisam ser calibrados para um ambiente real.
+
+| Indicador | Atenção | Crítico |
+| --- | ---: | ---: |
+| Disponibilidade | `up == 0` | imediato |
+| P95 da latência | > 100 ms | > 250 ms |
+| Error rate | > 5% | > 10% |
+| Memória residente | > 512 MiB | > 1 GiB |
+
+Em produção, os limites devem ser definidos a partir de SLOs, volume real de tráfego, capacidade da infraestrutura e comportamento esperado do modelo.
+
+---
+
+## 33. Reprodução completa por terceiros
+
+A sequência abaixo permite reconstruir e validar as Etapas 1, 2 e 3 a partir de um clone novo.
 
 ### 1. Clonar
 
@@ -965,10 +1531,10 @@ uv run mypy src
 uv run pytest -v
 ```
 
-Resultado esperado atualmente:
+Resultado validado:
 
 ```text
-12 passed
+13 passed
 ```
 
 ### 5. Baixar dados e treinar
@@ -977,14 +1543,14 @@ Resultado esperado atualmente:
 uv run python -m medical_triage.training.train
 ```
 
-Esse comando baixa automaticamente arquivos ausentes e gera:
+Esse comando gera:
 
 ```text
 models/classifier.joblib
 models/metrics.json
 ```
 
-### 6. Executar a API local
+### 6. Validar a API localmente
 
 ```bash
 uv run uvicorn \
@@ -993,61 +1559,94 @@ uv run uvicorn \
     --port 8000
 ```
 
-### 7. Validar a API
+Em outro terminal:
 
 ```bash
 curl http://localhost:8000/health
 ```
 
-### 8. Fazer uma inferência
+Encerrar:
+
+```text
+Ctrl+C
+```
+
+### 7. Subir observabilidade completa
+
+Garanta que as portas `8000`, `9090` e `3000` estejam disponíveis.
 
 ```bash
-curl \
+docker compose config
+docker compose up -d --build
+docker compose ps
+```
+
+### 8. Validar FastAPI, Prometheus e Grafana
+
+```bash
+curl http://localhost:8000/health
+curl http://localhost:9090/-/healthy
+curl http://localhost:3000/api/health
+```
+
+### 9. Gerar tráfego
+
+```bash
+for i in {1..10}; do
+  curl -s \
     -X POST \
     http://localhost:8000/predict \
     -H "Content-Type: application/json" \
     -d '{
-        "text": "The patient presented with acute myocardial infarction and severe coronary artery disease."
-    }'
+      "text": "The patient presented with acute myocardial infarction and severe coronary artery disease."
+    }' \
+    > /dev/null
+done
 ```
 
-### 9. Encerrar a API local
+### 10. Validar o Prometheus
+
+```bash
+curl -sG \
+  --data-urlencode 'query=medical_triage_predictions_total' \
+  http://localhost:9090/api/v1/query \
+  | python -m json.tool
+```
+
+Target:
+
+```bash
+curl -sG \
+  --data-urlencode 'query=up{job="medical-triage-api"}' \
+  http://localhost:9090/api/v1/query \
+  | python -m json.tool
+```
+
+### 11. Validar Grafana
+
+Abra:
 
 ```text
-Ctrl+C
+http://localhost:3000
 ```
 
-### 10. Construir a API Docker
-
-```bash
-docker build \
-    -t medical-triage-api:0.2.0 \
-    .
-```
-
-### 11. Executar a API Docker
-
-```bash
-docker run \
-    --rm \
-    --name medical-triage-api \
-    -p 8000:8000 \
-    medical-triage-api:0.2.0
-```
-
-### 12. Validar o container
-
-```bash
-curl http://localhost:8000/health
-```
-
-### 13. Encerrar a API Docker
+Dashboard esperado:
 
 ```text
-Ctrl+C
+Dashboards
+└── Medical Triage
+    └── Medical Triage - Observability
 ```
 
-### 14. Construir o Airflow
+### 12. Encerrar observabilidade
+
+```bash
+docker compose down
+```
+
+### 13. Validar Airflow
+
+Build:
 
 ```bash
 AIRFLOW_UID=$(id -u) docker compose \
@@ -1055,7 +1654,7 @@ AIRFLOW_UID=$(id -u) docker compose \
     build
 ```
 
-### 15. Subir o Airflow
+Subir:
 
 ```bash
 AIRFLOW_UID=$(id -u) docker compose \
@@ -1063,7 +1662,7 @@ AIRFLOW_UID=$(id -u) docker compose \
     up -d
 ```
 
-### 16. Verificar a DAG
+Validar DAG:
 
 ```bash
 AIRFLOW_UID=$(id -u) docker compose \
@@ -1072,46 +1671,7 @@ AIRFLOW_UID=$(id -u) docker compose \
     airflow dags list --local
 ```
 
-```bash
-AIRFLOW_UID=$(id -u) docker compose \
-    -f airflow/docker-compose.yml \
-    exec airflow \
-    airflow dags list-import-errors --local
-```
-
-### 17. Executar a DAG
-
-```bash
-AIRFLOW_UID=$(id -u) docker compose \
-    -f airflow/docker-compose.yml \
-    exec airflow \
-    airflow dags unpause medical_triage_training
-```
-
-```bash
-AIRFLOW_UID=$(id -u) docker compose \
-    -f airflow/docker-compose.yml \
-    exec airflow \
-    airflow dags trigger medical_triage_training
-```
-
-### 18. Verificar a execução
-
-```bash
-AIRFLOW_UID=$(id -u) docker compose \
-    -f airflow/docker-compose.yml \
-    exec airflow \
-    airflow dags list-runs medical_triage_training
-```
-
-### 19. Verificar artefatos
-
-```bash
-ls -lh models/
-cat models/metrics.json
-```
-
-### 20. Encerrar o Airflow
+Encerrar:
 
 ```bash
 AIRFLOW_UID=$(id -u) docker compose \
@@ -1119,11 +1679,11 @@ AIRFLOW_UID=$(id -u) docker compose \
     down
 ```
 
-Se todos os passos forem concluídos, um terceiro conseguiu reconstruir e validar as Etapas 1 e 2 sem depender dos arquivos gerados originalmente pelo autor.
+Se todos os passos forem concluídos, um terceiro conseguiu reconstruir e validar as Etapas 1, 2 e 3 sem depender dos artefatos originalmente gerados pelo autor.
 
 ---
 
-## 29. Fluxo recomendado para contribuidores
+## 34. Fluxo recomendado para contribuidores
 
 Antes de abrir um Pull Request:
 
@@ -1133,7 +1693,7 @@ uv run pre-commit run --all-files
 uv run pytest -v
 ```
 
-Fluxo recomendado:
+Fluxo:
 
 ```text
 fork ou clone
@@ -1170,7 +1730,7 @@ Dados e artefatos de modelo não devem ser adicionados ao commit.
 
 ---
 
-## 30. Critérios concluídos até a Etapa 2
+## 35. Critérios concluídos até a Etapa 3
 
 ```text
 [OK] DatasetLoader
@@ -1185,9 +1745,10 @@ Dados e artefatos de modelo não devem ser adicionados ao commit.
 [OK] FastAPI
 [OK] GET /health
 [OK] POST /predict
+[OK] GET /metrics
 [OK] Validação de entrada
 [OK] Logging sem conteúdo médico
-
+[OK] Métricas sem texto médico
 [OK] Docker multi-stage da API
 [OK] API executada em container
 [OK] Baseline local medido
@@ -1196,8 +1757,9 @@ Dados e artefatos de modelo não devem ser adicionados ao commit.
 [OK] Ruff
 [OK] mypy
 [OK] pre-commit
-[OK] 12 testes
+[OK] 13 testes
 [OK] Testes de integração da API
+[OK] Teste do endpoint /metrics
 
 [OK] GitHub Actions
 [OK] CI em push
@@ -1215,34 +1777,52 @@ Dados e artefatos de modelo não devem ser adicionados ao commit.
 [OK] DAG sem import errors
 [OK] DagRun executada com sucesso
 
+[OK] prometheus-client
+[OK] Counter de requisições HTTP
+[OK] Histogram de latência
+[OK] Counter de predições
+[OK] Prometheus
+[OK] Target medical-triage-api UP
+[OK] PromQL
+[OK] Docker Compose de observabilidade
+[OK] Grafana
+[OK] Datasource provisionado
+[OK] Dashboard provisionado
+[OK] Total Predictions
+[OK] Inference Throughput
+[OK] P95 Inference HTTP Latency
+[OK] Prediction Error Rate
+[OK] Prediction Distribution
+[OK] API Memory Usage
+
 [OK] Arquitetura AWS ECR + EC2 definida
 [OK] Reprodução por terceiros documentada
 ```
 
 ---
 
-## 31. Próximas etapas
+## 36. Próximas etapas
 
 Ainda não fazem parte da implementação atual:
 
 ```text
-Prometheus
-Grafana
-Docker Compose de observabilidade
-dashboards de latência e erros
-retraining automático por agenda ou drift
-deploy automático em AWS
+otimização de inferência
 ONNX
 quantização
 pruning
-outras otimizações de inferência
+comparação de latência antes/depois
+comparação de tamanho dos artefatos
+retraining automático por agenda ou drift
+alertas operacionais persistidos
+deploy automático em AWS
+publicação de imagem em registry
 ```
 
-Essas funcionalidades serão documentadas somente quando forem implementadas e validadas.
+As próximas funcionalidades devem ser documentadas somente após implementação e validação.
 
 ---
 
-## 32. Aviso
+## 37. Aviso
 
 Este projeto possui finalidade acadêmica e demonstra conceitos de engenharia de software, Machine Learning e MLOps.
 
