@@ -12,7 +12,7 @@ services:
       ONNX_MODEL_PATH: models/classifier.onnx
       ONNX_METADATA_PATH: models/classifier_onnx_metadata.json
       APP_NAME: Medical Triage API
-      APP_VERSION: 0.3.0
+      APP_VERSION: 0.4.0
 
     healthcheck:
       test:

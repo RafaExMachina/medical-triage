@@ -102,6 +102,6 @@ def get_settings() -> Settings:
         ),
         app_version=os.getenv(
             "APP_VERSION",
-            "0.3.0",
+            "0.4.0",
         ),
     )
