@@ -62,6 +62,15 @@ testpaths = ["tests"]
 python_version = "3.12"
 strict = true
 
+[[tool.mypy.overrides]]
+module = [
+    "onnxruntime",
+    "onnxruntime.*",
+    "skl2onnx",
+    "skl2onnx.*",
+]
+ignore_missing_imports = true
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"

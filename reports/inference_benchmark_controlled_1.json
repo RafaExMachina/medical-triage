@@ -1,0 +1,55 @@
+{
+  "configuration": {
+    "runs": 1000,
+    "warmup": 50,
+    "dataset": "data/raw/medical_tc_test.csv",
+    "request_mode": "single-text",
+    "onnx_provider": "CPUExecutionProvider",
+    "onnx_runtime": {
+      "intra_op_num_threads": 1,
+      "inter_op_num_threads": 1,
+      "execution_mode": "ORT_SEQUENTIAL"
+    }
+  },
+  "backends": {
+    "sklearn": {
+      "mean_ms": 1.120529111,
+      "p50_ms": 1.0509339999999998,
+      "p95_ms": 1.6898154499999993,
+      "p99_ms": 2.07660556,
+      "min_ms": 0.659697,
+      "max_ms": 3.04525,
+      "stdev_ms": 0.29700707974049484,
+      "estimated_requests_per_second": 892.4355379821989
+    },
+    "hybrid": {
+      "mean_ms": 1.166235109,
+      "p50_ms": 1.06979,
+      "p95_ms": 1.8235011499999998,
+      "p99_ms": 2.37428214,
+      "min_ms": 0.672407,
+      "max_ms": 3.26629,
+      "stdev_ms": 0.34020467127744164,
+      "estimated_requests_per_second": 857.4600372453716
+    },
+    "full_onnx": {
+      "mean_ms": 0.481198853,
+      "p50_ms": 0.4652665,
+      "p95_ms": 0.6522948,
+      "p99_ms": 0.75299834,
+      "min_ms": 0.330338,
+      "max_ms": 1.07887,
+      "stdev_ms": 0.08665086393984144,
+      "estimated_requests_per_second": 2078.1429418743855
+    }
+  },
+  "speedup_vs_sklearn": {
+    "hybrid_mean": 0.9608089332525831,
+    "full_onnx_mean": 2.32861966318943
+  },
+  "artifact_sizes_bytes": {
+    "joblib": 4064956,
+    "full_onnx": 2784949,
+    "onnx_classifier_head": 1250502
+  }
+}
