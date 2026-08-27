@@ -1,6 +1,6 @@
 # Medical Triage — Etapas 1, 2 e 3
 
-**Versão atual do pacote: `0.2.0`**  
+**Versão atual do pacote: `0.3.0`**  
 **Escopo documentado: Etapas 1, 2 e 3**
 
 API de classificação de textos médicos desenvolvida como base para um pipeline incremental de MLOps.
@@ -802,7 +802,7 @@ Build standalone:
 
 ```bash
 docker build \
-    -t medical-triage-api:0.2.0 \
+    -t medical-triage-api:0.3.0 \
     .
 ```
 
@@ -813,7 +813,7 @@ docker run \
     --rm \
     --name medical-triage-api \
     -p 8000:8000 \
-    medical-triage-api:0.2.0
+    medical-triage-api:0.3.0
 ```
 
 Health check:
