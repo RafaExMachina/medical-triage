@@ -35,11 +35,12 @@ API de classificação de textos médicos construída de forma incremental para 
 - [22. Variáveis de ambiente](#22-variáveis-de-ambiente)
 - [23. Troubleshooting](#23-troubleshooting)
 - [24. Fluxo para contribuidores](#24-fluxo-para-contribuidores)
-- [25. Documentação complementar](#25-documentação-complementar)
-- [26. Estado atual](#26-estado-atual)
-- [27. Vídeo STAR](#27-vídeo-star)
-- [28. Próximos passos](#28-próximos-passos)
-- [29. Aviso](#29-aviso)
+- [25. Documentação técnica](#25-documentação-técnica)
+- [26. Model Card](#26-model-card)
+- [27. Estado atual](#27-estado-atual)
+- [28. Vídeo STAR](#28-vídeo-star)
+- [29. Próximos passos](#29-próximos-passos)
+- [30. Aviso](#30-aviso)
 
 ---
 
@@ -47,7 +48,7 @@ API de classificação de textos médicos construída de forma incremental para 
 
 O projeto demonstra como evoluir um serviço de Machine Learning desde um baseline local até um runtime otimizado e observável.
 
-Principais capacidades já implementadas:
+Principais capacidades implementadas:
 
 - download automático do dataset;
 - treinamento com TF-IDF + Logistic Regression;
@@ -66,7 +67,9 @@ Principais capacidades já implementadas:
 - dashboard Grafana provisionado automaticamente;
 - benchmarks de latência;
 - validação de equivalência sklearn × ONNX;
-- documentação de reprodução para terceiros;
+- documentação por etapa;
+- Model Card com escopo, métricas, riscos e limitações;
+- reprodução por terceiros com `uv`;
 - decisão arquitetural de deploy real-time em AWS (ECR + EC2).
 
 Fluxo atual de serving:
@@ -125,7 +128,7 @@ cd medical-triage
 uv sync --locked
 ```
 
-O `uv.lock` é versionado. Isso permite recriar o ambiente de forma determinística.
+O `uv.lock` é versionado para permitir a reconstrução determinística do ambiente.
 
 > Não é necessário ativar manualmente `.venv`. Prefira executar os comandos com `uv run`.
 
@@ -141,7 +144,7 @@ Estado validado na versão `0.4.0`:
 21 passed
 ```
 
-A suíte pode exibir um `StarletteDeprecationWarning` relacionado a `TestClient/httpx`; o warning conhecido não impede a execução dos testes.
+A suíte pode exibir um `StarletteDeprecationWarning` relacionado ao `TestClient/httpx`; esse warning conhecido não impede a execução dos testes.
 
 ### 2.4 Subir a API
 
@@ -268,7 +271,7 @@ Não é feita conversão artificial entre categoria de doença e nível de urgê
 
 ## 5. Evolução por etapas
 
-### Etapa 1 — baseline, API e Docker
+### Etapa 1 — baseline, API, Docker e arquitetura de cloud
 
 ```text
 Medical Abstracts TC Corpus
@@ -304,35 +307,11 @@ Entregas:
 - validação Pydantic;
 - imagem Docker multi-stage;
 - benchmark inicial de latência;
-- logging sem registrar o texto médico.
+- logging sem registrar o texto médico;
+- decisão **real-time** em vez de batch para o serving interativo;
+- arquitetura de referência em AWS com ECR + EC2.
 
-#### Decisão arquitetural de deploy em nuvem
-
-A estratégia escolhida para o serving é **real-time**. Cada requisição HTTP contém
-um texto médico individual e espera uma classificação imediata, portanto o fluxo
-principal é síncrono:
-
-```text
-Cliente
-   |
-   v
-POST /predict
-   |
-   v
-FastAPI
-   |
-   v
-ONNX Runtime
-   |
-   v
-Resposta imediata
-```
-
-Uma abordagem batch seria mais apropriada para cenários em que grandes volumes
-de documentos fossem acumulados e processados periodicamente. Esse não é o fluxo
-principal deste projeto.
-
-Para um deploy em nuvem, a arquitetura selecionada é baseada em **AWS**:
+Arquitetura de cloud selecionada:
 
 ```text
 Developer / GitHub Actions
@@ -353,16 +332,11 @@ Developer / GitHub Actions
       POST /predict
 ```
 
-O **Amazon ECR** foi escolhido como registry para armazenar a imagem Docker e uma
-instância **Amazon EC2** como ambiente de execução contínua da API.
+Uma abordagem batch seria mais adequada para processamento periódico de grandes volumes. Como o fluxo principal atende requisições individuais e espera resposta imediata, o projeto utiliza serving real-time.
 
-A escolha prioriza simplicidade, compatibilidade com o serving real-time e baixo
-acoplamento operacional para o escopo acadêmico do projeto. Uma plataforma
-Kubernetes seria possível, mas adicionaria complexidade desnecessária ao cenário
-atual.
+Documentação detalhada:
 
-> O deploy automatizado em AWS ainda não faz parte da implementação atual. A
-> arquitetura de cloud está definida e documentada como decisão de projeto.
+[`docs/stage1-cloud-architecture.md`](docs/stage1-cloud-architecture.md)
 
 ### Etapa 2 — qualidade, CI e Airflow
 
@@ -406,6 +380,10 @@ Entregas:
 - DAG de treinamento;
 - validações antes e depois do treinamento.
 
+Documentação detalhada:
+
+[`docs/stage2-ci-airflow.md`](docs/stage2-ci-airflow.md)
+
 ### Etapa 3 — observabilidade
 
 ```text
@@ -431,6 +409,10 @@ Entregas:
 - Grafana;
 - dashboard com seis painéis;
 - provisionamento automático.
+
+Documentação detalhada:
+
+[`docs/observability-plan.md`](docs/observability-plan.md)
 
 ### Etapa 4 — otimização ONNX
 
@@ -463,6 +445,10 @@ Entregas:
 - imagem Docker de produção sem `classifier.joblib`;
 - benchmark HTTP end-to-end;
 - redução de latência e tamanho do artefato.
+
+Documentação detalhada:
+
+[`docs/stage4-onnx-optimization.md`](docs/stage4-onnx-optimization.md)
 
 ---
 
@@ -856,9 +842,7 @@ Isso indica que as divergências do Full ONNX estão no estágio de TF-IDF conve
 
 Documentação detalhada:
 
-```text
-docs/stage4-onnx-optimization.md
-```
+[`docs/stage4-onnx-optimization.md`](docs/stage4-onnx-optimization.md)
 
 ---
 
@@ -1076,14 +1060,13 @@ Dashboard:
 Medical Triage - Observability
 ```
 
-O dashboard é versionado em JSON no repositório:
+O dashboard é versionado em JSON:
 
 ```text
 monitoring/grafana/dashboards/medical-triage.json
 ```
 
-O datasource Prometheus e o dashboard são provisionados automaticamente pelo
-Docker Compose a partir dos arquivos versionados.
+O datasource Prometheus e o dashboard são provisionados automaticamente a partir dos arquivos versionados.
 
 Painéis:
 
@@ -1098,9 +1081,7 @@ Painéis:
 
 Documentação detalhada:
 
-```text
-docs/observability-plan.md
-```
+[`docs/observability-plan.md`](docs/observability-plan.md)
 
 ---
 
@@ -1182,6 +1163,10 @@ AIRFLOW_UID=$(id -u) docker compose \
   down
 ```
 
+Mais detalhes:
+
+[`docs/stage2-ci-airflow.md`](docs/stage2-ci-airflow.md)
+
 ---
 
 ## 19. CI com GitHub Actions
@@ -1238,14 +1223,20 @@ medical-triage/
 │   ├── processed/
 │   └── raw/
 ├── docs/
+│   ├── stage1-cloud-architecture.md
+│   ├── stage2-ci-airflow.md
 │   ├── observability-plan.md
-│   └── stage4-onnx-optimization.md
+│   ├── stage4-onnx-optimization.md
+│   └── model-card.md
 ├── models/
 │   ├── classifier.onnx
 │   └── classifier_onnx_metadata.json
 ├── monitoring/
 │   ├── grafana/
+│   │   └── dashboards/
+│   │       └── medical-triage.json
 │   └── prometheus/
+│       └── prometheus.yml
 ├── reports/
 │   ├── inference_benchmark_summary.json
 │   ├── http_benchmark_summary.json
@@ -1387,7 +1378,7 @@ curl -sG \
   | python -m json.tool
 ```
 
-O target esperado é:
+Target esperado:
 
 ```text
 instance="api:8000"
@@ -1498,7 +1489,7 @@ Se estiver diagnosticando a imagem:
 ```bash
 docker run --rm \
   --entrypoint sh \
-  medical-triage-api \
+  medical-triage-api:0.4.0 \
   -c 'locale -a'
 ```
 
@@ -1517,7 +1508,7 @@ print(f"adapter: {type(classifier).__name__}")
 PY
 ```
 
-Esperado na configuração de produção:
+Esperado:
 
 ```text
 backend: onnx
@@ -1575,29 +1566,56 @@ Não versione datasets baixados nem artefatos locais que estejam ignorados pelo 
 
 ---
 
-## 25. Documentação complementar
+## 25. Documentação técnica
 
-Observabilidade:
+A documentação detalhada está organizada por etapa e responsabilidade.
 
-```text
-docs/observability-plan.md
-```
+| Documento | Conteúdo |
+|---|---|
+| [`docs/stage1-cloud-architecture.md`](docs/stage1-cloud-architecture.md) | decisão real-time vs batch, arquitetura AWS ECR + EC2, FastAPI, Docker e baseline de latência |
+| [`docs/stage2-ci-airflow.md`](docs/stage2-ci-airflow.md) | GitHub Actions, quality gates, `uv`, CI e pipeline de treinamento com Apache Airflow |
+| [`docs/observability-plan.md`](docs/observability-plan.md) | Prometheus, Grafana, métricas, PromQL, segurança e Docker Compose |
+| [`docs/stage4-onnx-optimization.md`](docs/stage4-onnx-optimization.md) | export ONNX, equivalência, benchmarks, Docker e otimização de inferência |
+| [`docs/model-card.md`](docs/model-card.md) | dataset, uso pretendido, métricas, limitações, riscos, privacidade e desempenho |
 
-Otimização ONNX:
-
-```text
-docs/stage4-onnx-optimization.md
-```
-
-Relatórios:
+Relatórios experimentais:
 
 ```text
 reports/
 ```
 
+Essa organização permite usar o `README.md` como porta de entrada e os arquivos em `docs/` como referência técnica detalhada.
+
 ---
 
-## 26. Estado atual
+## 26. Model Card
+
+A Model Card documenta o modelo separadamente da infraestrutura de MLOps.
+
+Arquivo:
+
+[`docs/model-card.md`](docs/model-card.md)
+
+Ela contém:
+
+- finalidade do modelo;
+- usos pretendidos;
+- usos não pretendidos;
+- dataset e classes;
+- arquitetura TF-IDF + Logistic Regression;
+- métricas do baseline;
+- avaliação sklearn e ONNX;
+- equivalência entre backends;
+- limitações;
+- riscos de uso incorreto;
+- privacidade;
+- observabilidade;
+- reprodutibilidade;
+- aviso de que o projeto não é um dispositivo médico.
+
+---
+
+## 27. Estado atual
 
 ```text
 [OK] DatasetLoader
@@ -1614,6 +1632,8 @@ reports/
 [OK] Métricas sem texto médico
 [OK] Docker multi-stage
 [OK] API em container
+[OK] Arquitetura real-time
+[OK] Arquitetura AWS ECR + EC2 documentada
 [OK] Ruff
 [OK] mypy
 [OK] pre-commit
@@ -1624,6 +1644,7 @@ reports/
 [OK] Prometheus
 [OK] Grafana
 [OK] Dashboard provisionado
+[OK] Dashboard JSON versionado
 [OK] ONNX Runtime
 [OK] Export Full ONNX
 [OK] Validação de equivalência
@@ -1633,34 +1654,29 @@ reports/
 [OK] Docker com artefatos ONNX
 [OK] Benchmark sklearn x ONNX
 [OK] Benchmark HTTP end-to-end
+[OK] Documentação individual das Etapas 1, 2, 3 e 4
+[OK] Model Card
 [OK] Versão 0.4.0
 ```
 
 ---
 
-## 27. Vídeo STAR
+## 28. Vídeo STAR
 
-A demonstração final do projeto deve seguir a metodologia STAR
-(**Situação, Tarefa, Ação e Resultado**) e ter duração máxima de 5 minutos.
+A demonstração final do projeto deve seguir a metodologia STAR (**Situação, Tarefa, Ação e Resultado**) e ter duração máxima de 5 minutos.
 
-- **Situação:** necessidade de disponibilizar e operar um classificador de textos
-  médicos com práticas de MLOps;
-- **Tarefa:** construir serving, automação, observabilidade e otimização de
-  inferência;
-- **Ação:** FastAPI, Docker, GitHub Actions, Airflow, Prometheus, Grafana e
-  conversão do pipeline para ONNX Runtime;
-- **Resultado:** API reproduzível e observável, com redução aproximada de
-  **79,55%** no tempo médio de inferência dentro da API e **34,42%** na latência
-  HTTP média end-to-end.
+- **Situação:** necessidade de disponibilizar e operar um classificador de textos médicos com práticas de MLOps;
+- **Tarefa:** construir serving, automação, observabilidade e otimização de inferência;
+- **Ação:** FastAPI, Docker, GitHub Actions, Airflow, Prometheus, Grafana e conversão do pipeline para ONNX Runtime;
+- **Resultado:** API reproduzível e observável, com redução aproximada de **79,55%** no tempo médio de inferência dentro da API e **34,42%** na latência HTTP média end-to-end.
 
 **Link do vídeo:** _adicionar após a publicação_
 
-> O link acima deve ser substituído pelo endereço público ou compartilhável do
-> vídeo antes da entrega final.
+> Substitua o campo acima pelo endereço público ou compartilhável do vídeo antes da entrega final.
 
 ---
 
-## 28. Próximos passos
+## 29. Próximos passos
 
 Itens que podem ser evoluídos em versões futuras:
 
@@ -1674,7 +1690,7 @@ Itens que podem ser evoluídos em versões futuras:
 
 ---
 
-## 29. Aviso
+## 30. Aviso
 
 Este projeto possui finalidade acadêmica e demonstra conceitos de engenharia de software, Machine Learning e MLOps.
 
@@ -1685,4 +1701,4 @@ O modelo atual:
 - não deve ser usado para priorização clínica;
 - não deve ser usado para tomada de decisão sobre pacientes.
 
-O objetivo do repositório é demonstrar uma arquitetura reproduzível de treinamento, serving, observabilidade e otimização de modelos.
+O objetivo do repositório é demonstrar uma arquitetura reproduzível de treinamento, serving, automação, observabilidade e otimização de modelos.
