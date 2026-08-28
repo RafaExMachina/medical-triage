@@ -11,36 +11,77 @@ API de classificação de textos médicos construída de forma incremental para 
 
 ## Sumário
 
-- [1. Visão geral](#1-visão-geral)
-- [2. Quick start com uv](#2-quick-start-com-uv)
-- [3. Quick start com Docker Compose](#3-quick-start-com-docker-compose)
-- [4. Escopo clínico do dataset](#4-escopo-clínico-do-dataset)
-- [5. Evolução por etapas](#5-evolução-por-etapas)
-- [6. Arquitetura atual](#6-arquitetura-atual)
-- [7. Dataset e modelo](#7-dataset-e-modelo)
-- [8. Instalação e ambiente Python](#8-instalação-e-ambiente-python)
-- [9. Executando a API localmente](#9-executando-a-api-localmente)
-- [10. Endpoints](#10-endpoints)
-- [11. Backends de inferência](#11-backends-de-inferência)
-- [12. Treinamento e geração de artefatos](#12-treinamento-e-geração-de-artefatos)
-- [13. Otimização com ONNX Runtime](#13-otimização-com-onnx-runtime)
-- [14. Benchmarks](#14-benchmarks)
-- [15. Qualidade, testes e pre-commit](#15-qualidade-testes-e-pre-commit)
-- [16. Docker](#16-docker)
-- [17. Observabilidade](#17-observabilidade)
-- [18. Apache Airflow](#18-apache-airflow)
-- [19. CI com GitHub Actions](#19-ci-com-github-actions)
-- [20. Estrutura do projeto](#20-estrutura-do-projeto)
-- [21. Reprodução completa por terceiros](#21-reprodução-completa-por-terceiros)
-- [22. Variáveis de ambiente](#22-variáveis-de-ambiente)
-- [23. Troubleshooting](#23-troubleshooting)
-- [24. Fluxo para contribuidores](#24-fluxo-para-contribuidores)
-- [25. Documentação técnica](#25-documentação-técnica)
-- [26. Model Card](#26-model-card)
-- [27. Estado atual](#27-estado-atual)
-- [28. Vídeo STAR](#28-vídeo-star)
-- [29. Próximos passos](#29-próximos-passos)
-- [30. Aviso](#30-aviso)
+- [Medical Triage — MLOps para Classificação de Textos Médicos](#medical-triage--mlops-para-classificação-de-textos-médicos)
+  - [Sumário](#sumário)
+  - [1. Visão geral](#1-visão-geral)
+  - [2. Quick start com uv](#2-quick-start-com-uv)
+    - [2.1 Clonar](#21-clonar)
+    - [2.2 Instalar as dependências](#22-instalar-as-dependências)
+    - [2.3 Validar o projeto](#23-validar-o-projeto)
+    - [2.4 Subir a API](#24-subir-a-api)
+  - [3. Quick start com Docker Compose](#3-quick-start-com-docker-compose)
+  - [4. Escopo clínico do dataset](#4-escopo-clínico-do-dataset)
+  - [5. Evolução por etapas](#5-evolução-por-etapas)
+    - [Etapa 1 — baseline, API, Docker e arquitetura de cloud](#etapa-1--baseline-api-docker-e-arquitetura-de-cloud)
+    - [Etapa 2 — qualidade, CI e Airflow](#etapa-2--qualidade-ci-e-airflow)
+    - [Etapa 3 — observabilidade](#etapa-3--observabilidade)
+    - [Etapa 4 — otimização ONNX](#etapa-4--otimização-onnx)
+  - [6. Arquitetura atual](#6-arquitetura-atual)
+  - [7. Dataset e modelo](#7-dataset-e-modelo)
+    - [Baseline](#baseline)
+    - [Dataset](#dataset)
+  - [8. Instalação e ambiente Python](#8-instalação-e-ambiente-python)
+  - [9. Executando a API localmente](#9-executando-a-api-localmente)
+    - [Backend ONNX — padrão](#backend-onnx--padrão)
+    - [Backend sklearn — opcional](#backend-sklearn--opcional)
+  - [10. Endpoints](#10-endpoints)
+    - [`GET /health`](#get-health)
+    - [`POST /predict`](#post-predict)
+    - [`GET /metrics`](#get-metrics)
+    - [Validação de entrada](#validação-de-entrada)
+  - [11. Backends de inferência](#11-backends-de-inferência)
+  - [12. Treinamento e geração de artefatos](#12-treinamento-e-geração-de-artefatos)
+  - [13. Otimização com ONNX Runtime](#13-otimização-com-onnx-runtime)
+    - [Equivalência no conjunto oficial de teste](#equivalência-no-conjunto-oficial-de-teste)
+    - [Diagnóstico](#diagnóstico)
+  - [14. Benchmarks](#14-benchmarks)
+    - [14.1 Tamanho do artefato](#141-tamanho-do-artefato)
+    - [14.2 Benchmark isolado do modelo](#142-benchmark-isolado-do-modelo)
+    - [14.3 Benchmark HTTP end-to-end](#143-benchmark-http-end-to-end)
+  - [15. Qualidade, testes e pre-commit](#15-qualidade-testes-e-pre-commit)
+  - [16. Docker](#16-docker)
+    - [Artefatos na imagem](#artefatos-na-imagem)
+    - [Locale requerido pelo ONNX Runtime](#locale-requerido-pelo-onnx-runtime)
+  - [17. Observabilidade](#17-observabilidade)
+  - [18. Apache Airflow](#18-apache-airflow)
+  - [19. CI com GitHub Actions](#19-ci-com-github-actions)
+  - [20. Estrutura do projeto](#20-estrutura-do-projeto)
+  - [21. Reprodução completa por terceiros](#21-reprodução-completa-por-terceiros)
+    - [1. Clonar](#1-clonar)
+    - [2. Criar/sincronizar o ambiente](#2-criarsincronizar-o-ambiente)
+    - [3. Executar os testes](#3-executar-os-testes)
+    - [4. Validar os quality gates](#4-validar-os-quality-gates)
+    - [5. Validar a API ONNX local](#5-validar-a-api-onnx-local)
+    - [6. Treinar o baseline sklearn, se quiser reproduzir o treinamento](#6-treinar-o-baseline-sklearn-se-quiser-reproduzir-o-treinamento)
+    - [7. Subir a stack de observabilidade](#7-subir-a-stack-de-observabilidade)
+    - [8. Validar os serviços](#8-validar-os-serviços)
+    - [9. Validar o target do Prometheus](#9-validar-o-target-do-prometheus)
+    - [10. Abrir o Grafana](#10-abrir-o-grafana)
+    - [11. Encerrar](#11-encerrar)
+  - [22. Variáveis de ambiente](#22-variáveis-de-ambiente)
+  - [23. Troubleshooting](#23-troubleshooting)
+    - [Docker não está iniciado](#docker-não-está-iniciado)
+    - [Porta 8000 ocupada](#porta-8000-ocupada)
+    - [Porta 9090 ocupada](#porta-9090-ocupada)
+    - [ONNX e locale no Docker](#onnx-e-locale-no-docker)
+    - [Confirmar o backend no container](#confirmar-o-backend-no-container)
+  - [24. Fluxo para contribuidores](#24-fluxo-para-contribuidores)
+  - [25. Documentação técnica](#25-documentação-técnica)
+  - [26. Model Card](#26-model-card)
+  - [27. Estado atual](#27-estado-atual)
+  - [28. Vídeo STAR](#28-vídeo-star)
+  - [29. Próximos passos](#29-próximos-passos)
+  - [30. Aviso](#30-aviso)
 
 ---
 
@@ -154,42 +195,6 @@ uv run uvicorn \
   --host 127.0.0.1 \
   --port 8000
 ```
-
->[NOTA!]
->A execução local utiliza ONNX por padrão. O modelo ONNX usa o operador
-StringNormalizer, que pode exigir o locale en_US.UTF-8.
->
->Em algumas instalações do Ubuntu esse locale pode não estar habilitado.
-Caso a inicialização apresente um erro semelhante a:
->```bash
->Failed to construct locale with name: en_US.UTF-8
->```
-verifique se o locale está disponível:
-```bash 
-locale -a | grep -i en_US
-sudo locale-gen en_US.UTF-8 
-```
-Se nenhuma entrada for exibida, instale e gere o locale:
-
-```bash
-sudo apt update
-sudo apt install -y locales language-pack-en
-sudo locale-gen en_US.UTF-8
-```
->Em seguida, execute novamente a API. Se necessário, o locale também pode
->ser definido somente para o processo da aplicação:
-
-```bash
-LANG=en_US.UTF-8 \
-LC_ALL=en_US.UTF-8 \
-uv run uvicorn \
-  medical_triage.presentation.api.main:app \
-  --host 127.0.0.1 \
-  --port 8000
-```
->A imagem Docker do projeto já possui essa configuração, portanto esse
->ajuste normalmente é necessário apenas na execução local diretamente
->no sistema operacional.
 
 Em outro terminal:
 
