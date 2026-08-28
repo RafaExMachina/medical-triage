@@ -155,6 +155,42 @@ uv run uvicorn \
   --port 8000
 ```
 
+>[NOTA!]
+>A execução local utiliza ONNX por padrão. O modelo ONNX usa o operador
+StringNormalizer, que pode exigir o locale en_US.UTF-8.
+>
+>Em algumas instalações do Ubuntu esse locale pode não estar habilitado.
+Caso a inicialização apresente um erro semelhante a:
+>```bash
+>Failed to construct locale with name: en_US.UTF-8
+>```
+verifique se o locale está disponível:
+```bash 
+locale -a | grep -i en_US
+sudo locale-gen en_US.UTF-8 
+```
+Se nenhuma entrada for exibida, instale e gere o locale:
+
+```bash
+sudo apt update
+sudo apt install -y locales language-pack-en
+sudo locale-gen en_US.UTF-8
+```
+>Em seguida, execute novamente a API. Se necessário, o locale também pode
+>ser definido somente para o processo da aplicação:
+
+```bash
+LANG=en_US.UTF-8 \
+LC_ALL=en_US.UTF-8 \
+uv run uvicorn \
+  medical_triage.presentation.api.main:app \
+  --host 127.0.0.1 \
+  --port 8000
+```
+>A imagem Docker do projeto já possui essa configuração, portanto esse
+>ajuste normalmente é necessário apenas na execução local diretamente
+>no sistema operacional.
+
 Em outro terminal:
 
 ```bash
