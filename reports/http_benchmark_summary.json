@@ -1,0 +1,147 @@
+{
+  "methodology": {
+    "backends": [
+      "sklearn",
+      "onnx"
+    ],
+    "runs_per_backend": 3,
+    "requests_per_run": 1000,
+    "warmup_requests_per_run": 50,
+    "request_mode": "single-text",
+    "http_connection": "persistent",
+    "aggregation": "arithmetic mean of per-run summary statistics",
+    "percentile_note": "p50, p95 and p99 are averages of per-run percentiles, not percentiles pooled from raw samples"
+  },
+  "sklearn": {
+    "runs": 3,
+    "source_reports": [
+      "reports/http_benchmark_sklearn_1.json",
+      "reports/http_benchmark_sklearn_2.json",
+      "reports/http_benchmark_sklearn_3.json"
+    ],
+    "client_latency_ms": {
+      "mean_ms": 10.97677319533195,
+      "p50_ms": 9.414578999989468,
+      "p95_ms": 21.237967000009423,
+      "p99_ms": 31.959905666648563
+    },
+    "server_inference_ms": {
+      "mean_ms": 5.278259918333693,
+      "p50_ms": 4.648484333301894,
+      "p95_ms": 9.433530666702458,
+      "p99_ms": 16.06952200000933
+    },
+    "application_overhead_ms": {
+      "mean_ms": 5.698513276998256,
+      "p50_ms": 4.646994666624475,
+      "p95_ms": 12.006229666667423,
+      "p99_ms": 19.454831999932292
+    }
+  },
+  "onnx": {
+    "runs": 3,
+    "source_reports": [
+      "reports/http_benchmark_onnx_1.json",
+      "reports/http_benchmark_onnx_2.json",
+      "reports/http_benchmark_onnx_3.json"
+    ],
+    "client_latency_ms": {
+      "mean_ms": 7.199065402667543,
+      "p50_ms": 5.900330666615143,
+      "p95_ms": 14.517999000001206,
+      "p99_ms": 22.682637333332423
+    },
+    "server_inference_ms": {
+      "mean_ms": 1.0791898743337545,
+      "p50_ms": 0.9451083332881657,
+      "p95_ms": 1.8704740000051363,
+      "p99_ms": 3.732194999959878
+    },
+    "application_overhead_ms": {
+      "mean_ms": 6.119875528333789,
+      "p50_ms": 4.872298000009323,
+      "p95_ms": 13.18055100004282,
+      "p99_ms": 21.263124666688782
+    }
+  },
+  "comparison": {
+    "client_latency_ms": {
+      "mean_ms": {
+        "sklearn_ms": 10.97677319533195,
+        "onnx_ms": 7.199065402667543,
+        "speedup_x": 1.5247497531088707,
+        "reduction_percent": 34.41546732760169
+      },
+      "p50_ms": {
+        "sklearn_ms": 9.414578999989468,
+        "onnx_ms": 5.900330666615143,
+        "speedup_x": 1.5956019301186644,
+        "reduction_percent": 37.327726851920374
+      },
+      "p95_ms": {
+        "sklearn_ms": 21.237967000009423,
+        "onnx_ms": 14.517999000001206,
+        "speedup_x": 1.4628715017825569,
+        "reduction_percent": 31.641295986594365
+      },
+      "p99_ms": {
+        "sklearn_ms": 31.959905666648563,
+        "onnx_ms": 22.682637333332423,
+        "speedup_x": 1.409003071247058,
+        "reduction_percent": 29.027833905646784
+      }
+    },
+    "server_inference_ms": {
+      "mean_ms": {
+        "sklearn_ms": 5.278259918333693,
+        "onnx_ms": 1.0791898743337545,
+        "speedup_x": 4.890946481120632,
+        "reduction_percent": 79.55405965164279
+      },
+      "p50_ms": {
+        "sklearn_ms": 4.648484333301894,
+        "onnx_ms": 0.9451083332881657,
+        "speedup_x": 4.918467195320519,
+        "reduction_percent": 79.66846254557902
+      },
+      "p95_ms": {
+        "sklearn_ms": 9.433530666702458,
+        "onnx_ms": 1.8704740000051363,
+        "speedup_x": 5.043390427601,
+        "reduction_percent": 80.1720684853726
+      },
+      "p99_ms": {
+        "sklearn_ms": 16.06952200000933,
+        "onnx_ms": 3.732194999959878,
+        "speedup_x": 4.3056490885878365,
+        "reduction_percent": 76.77469809022502
+      }
+    },
+    "application_overhead_ms": {
+      "mean_ms": {
+        "sklearn_ms": 5.698513276998256,
+        "onnx_ms": 6.119875528333789,
+        "speedup_x": 0.9311485585965416,
+        "reduction_percent": -7.394248830415817
+      },
+      "p50_ms": {
+        "sklearn_ms": 4.646994666624475,
+        "onnx_ms": 4.872298000009323,
+        "speedup_x": 0.9537583018558354,
+        "reduction_percent": -4.848366515309688
+      },
+      "p95_ms": {
+        "sklearn_ms": 12.006229666667423,
+        "onnx_ms": 13.18055100004282,
+        "speedup_x": 0.9109049892245338,
+        "reduction_percent": -9.780933448538253
+      },
+      "p99_ms": {
+        "sklearn_ms": 19.454831999932292,
+        "onnx_ms": 21.263124666688782,
+        "speedup_x": 0.9149564001009975,
+        "reduction_percent": -9.294825402567252
+      }
+    }
+  }
+}

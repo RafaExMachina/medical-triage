@@ -1,0 +1,34 @@
+{
+  "dataset": {
+    "path": "data/raw/medical_tc_test.csv",
+    "samples": 2888
+  },
+  "architecture": {
+    "preprocessing": "sklearn-tfidf",
+    "baseline_classifier": "sklearn-logistic-regression",
+    "optimized_classifier": "onnx-logistic-regression",
+    "batch_size": 128
+  },
+  "prediction_equivalence": {
+    "matching_predictions": 2888,
+    "different_predictions": 0,
+    "agreement": 1.0
+  },
+  "quality": {
+    "sklearn": {
+      "accuracy": 0.5831024930747922,
+      "macro_f1": 0.5855929096160029
+    },
+    "hybrid": {
+      "accuracy": 0.5831024930747922,
+      "macro_f1": 0.5855929096160029
+    }
+  },
+  "probability_equivalence": {
+    "allclose": true,
+    "rtol": 1e-05,
+    "atol": 1e-06,
+    "maximum_absolute_difference": 1.9603426415493175e-07,
+    "mean_absolute_difference": 1.5122918359925107e-08
+  }
+}

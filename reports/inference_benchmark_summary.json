@@ -1,0 +1,70 @@
+{
+  "protocol": {
+    "runs_per_experiment": 1000,
+    "warmup": 50,
+    "repetitions": 3,
+    "request_mode": "single-text",
+    "onnx_provider": "CPUExecutionProvider",
+    "onnx_runtime": {
+      "intra_op_num_threads": 1,
+      "inter_op_num_threads": 1,
+      "execution_mode": "ORT_SEQUENTIAL"
+    }
+  },
+  "average_results": {
+    "sklearn": {
+      "mean_ms": 0.9965,
+      "p50_ms": 0.9555,
+      "p95_ms": 1.4067,
+      "p99_ms": 1.7523,
+      "estimated_requests_per_second": 1010.90
+    },
+    "hybrid": {
+      "mean_ms": 1.0539,
+      "p50_ms": 1.0075,
+      "p95_ms": 1.4878,
+      "p99_ms": 1.8535,
+      "estimated_requests_per_second": 954.12
+    },
+    "full_onnx": {
+      "mean_ms": 0.4640,
+      "p50_ms": 0.4487,
+      "p95_ms": 0.6135,
+      "p99_ms": 0.7388,
+      "estimated_requests_per_second": 2157.30
+    }
+  },
+  "full_onnx_vs_sklearn": {
+    "mean_speedup": 2.1476,
+    "mean_latency_reduction_percent": 53.44,
+    "p50_latency_reduction_percent": 53.05,
+    "p95_latency_reduction_percent": 56.39,
+    "p99_latency_reduction_percent": 57.84,
+    "artifact_size_reduction_percent": 31.49
+  },
+  "prediction_quality": {
+    "sklearn": {
+      "accuracy": 0.583102,
+      "macro_f1": 0.585593
+    },
+    "full_onnx": {
+      "accuracy": 0.585873,
+      "macro_f1": 0.587332,
+      "prediction_agreement_percent": 98.995845,
+      "different_predictions": 29,
+      "samples": 2888
+    },
+    "hybrid": {
+      "accuracy": 0.583102,
+      "macro_f1": 0.585593,
+      "prediction_agreement_percent": 100.0,
+      "different_predictions": 0,
+      "samples": 2888
+    }
+  },
+  "artifact_sizes_bytes": {
+    "sklearn_joblib": 4064956,
+    "full_onnx": 2784949,
+    "onnx_classifier_head_experimental": 1250502
+  }
+}

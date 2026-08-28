@@ -1,6 +1,6 @@
 [project]
 name = "medical-triage"
-version = "0.3.0"
+version = "0.4.0"
 description = "Medical text classification API"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -8,6 +8,7 @@ requires-python = ">=3.12"
 dependencies = [
     "fastapi",
     "joblib",
+    "onnxruntime>=1.29.0",
     "pandas",
     "prometheus-client>=0.26.0",
     "scikit-learn",
@@ -19,11 +20,13 @@ dev = [
     "httpx",
     "joblib-stubs>=1.5.3.1.20260117",
     "mypy",
+    "onnx>=1.22.0",
     "pandas-stubs>=3.0.5.260730",
     "pre-commit>=4.6.2",
     "pytest",
     "ruff",
     "scikit-learn-stubs>=0.0.3",
+    "skl2onnx>=1.20.0",
 ]
 
 [tool.ruff]
@@ -58,6 +61,15 @@ testpaths = ["tests"]
 [tool.mypy]
 python_version = "3.12"
 strict = true
+
+[[tool.mypy.overrides]]
+module = [
+    "onnxruntime",
+    "onnxruntime.*",
+    "skl2onnx",
+    "skl2onnx.*",
+]
+ignore_missing_imports = true
 
 [build-system]
 requires = ["hatchling"]

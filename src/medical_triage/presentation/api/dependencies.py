@@ -6,24 +6,40 @@ from medical_triage.application.use_cases import (
     ClassifyMedicalTextUseCase,
 )
 from medical_triage.config import get_settings
+from medical_triage.domain.ports import ClassifierPort
+from medical_triage.infrastructure.onnx_classifier import (
+    OnnxClassifierAdapter,
+)
 from medical_triage.infrastructure.sklearn_classifier import (
     SklearnClassifierAdapter,
 )
 
 
 @lru_cache
-def get_classifier() -> SklearnClassifierAdapter:
-    """Load and cache the machine-learning classifier.
+def get_classifier() -> ClassifierPort:
+    """Load and cache the configured machine-learning classifier.
 
-    The classifier is loaded only once during the application lifecycle,
-    avoiding repeated model loading for every HTTP request.
+    The inference backend is selected through MODEL_BACKEND.
+
+    Supported values:
+
+    - ``onnx``: optimized ONNX Runtime pipeline.
+    - ``sklearn``: original Scikit-learn pipeline.
 
     Returns:
-        Cached Scikit-learn classifier adapter.
+        Cached classifier implementing ClassifierPort.
     """
     settings = get_settings()
 
-    return SklearnClassifierAdapter.from_file(settings.model_path)
+    if settings.model_backend == "onnx":
+        return OnnxClassifierAdapter.from_files(
+            model_path=settings.onnx_model_path,
+            metadata_path=settings.onnx_metadata_path,
+        )
+
+    return SklearnClassifierAdapter.from_file(
+        settings.model_path,
+    )
 
 
 @lru_cache
@@ -35,4 +51,6 @@ def get_classification_use_case() -> ClassifyMedicalTextUseCase:
     """
     classifier = get_classifier()
 
-    return ClassifyMedicalTextUseCase(classifier=classifier)
+    return ClassifyMedicalTextUseCase(
+        classifier=classifier,
+    )

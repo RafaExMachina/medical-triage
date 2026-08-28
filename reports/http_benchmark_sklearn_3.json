@@ -1,0 +1,45 @@
+{
+  "configuration": {
+    "backend": "sklearn",
+    "url": "http://127.0.0.1:8000/predict",
+    "runs": 1000,
+    "warmup": 50,
+    "dataset": "data/raw/medical_tc_test.csv",
+    "dataset_samples": 2888,
+    "request_mode": "single-text",
+    "http_connection": "persistent"
+  },
+  "client_latency_ms": {
+    "samples": 1000,
+    "mean_ms": 9.73512501999852,
+    "p50_ms": 8.695774999978312,
+    "p95_ms": 17.666371000018444,
+    "p99_ms": 26.871559999960937,
+    "min_ms": 5.177027000001999,
+    "max_ms": 69.04261400001133,
+    "stdev_ms": 4.511749368223604,
+    "estimated_requests_per_second": 102.72081744669285
+  },
+  "server_inference_ms": {
+    "samples": 1000,
+    "mean_ms": 4.6655789569989565,
+    "p50_ms": 4.295507999984238,
+    "p95_ms": 7.103284000038457,
+    "p99_ms": 14.041816000030849,
+    "min_ms": 2.2602310000365833,
+    "max_ms": 30.061499999987973,
+    "stdev_ms": 2.1739900508113568,
+    "estimated_requests_per_second": 214.33567178192837
+  },
+  "application_overhead_ms": {
+    "samples": 1000,
+    "mean_ms": 5.069546062999564,
+    "p50_ms": 4.311292000011235,
+    "p95_ms": 9.742327999958889,
+    "p99_ms": 15.482334999944669,
+    "min_ms": 2.7131429999940337,
+    "max_ms": 38.981114000023354,
+    "stdev_ms": 2.798783779391418,
+    "estimated_requests_per_second": 197.25631990969958
+  }
+}
