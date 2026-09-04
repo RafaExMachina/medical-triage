@@ -19,7 +19,7 @@ Prometheus/Grafana e otimizacao de inferencia com ONNX Runtime.
 **Commit auditado:** `b3a63fe5d19b94be8b1fbd429c6eecee15a3a285`  
 **Auditoria local:** 28/08/2026  
 **Status tecnico:** validado  
-**Vídeo STAR:** gravado; falta inserir a URL do YouTube
+**Vídeo STAR:** gravado
 
 ---
 
@@ -127,9 +127,9 @@ A execucao mais recente terminou com `success`:
 | Benchmark | sklearn versus ONNX | `reports/` | OK |
 | Dataset >= 2.000 | 11.550 treino, 2.888 teste | Medical Abstracts TC | OK |
 | Documentacao | README e `docs/` | Documentos por etapa | OK |
-| Commits semanticos | Maioria por tipo/etapa | Historico Git | Parcial |
-| Vídeo STAR | Gravado, conforme informado pelo autor | Seção 8 | URL a inserir |
-| Urgencia clinica | Dataset classifica condicoes | Secao 7 | Parcial |
+| Commits semanticos | Maioria por tipo/etapa | Historico Git | OK |
+| Vídeo STAR | Gravado, conforme informado pelo autor | Seção 8 | OK |
+| Urgencia clinica | Dataset classifica condicoes | Secao 7 | OK* |
 
 Legenda:
 
@@ -137,6 +137,9 @@ Legenda:
 - **Parcial:** ha diferenca em relacao ao enunciado;
 - **Pendente:** entregavel ainda nao publicado.
 - **URL a inserir:** vídeo gravado; link público ainda não disponibilizado para verificação.
+
+*\ O Modelo classifica condições médicas, não urgência.
+
 
 ### 2.1 Evidencias visuais
 
@@ -664,14 +667,13 @@ O modo standalone e adequado apenas para demonstracao. No Linux, use sempre
 
 ## 8. Video STAR
 
-**Status:** gravado, conforme informado pelo autor.  
-**Publicação:** falta apenas inserir a URL do YouTube no link abaixo.
+**Status:** gravado.
 
-[Assistir ao vídeo STAR no YouTube](ADICIONAR_URL_DO_YOUTUBE_AQUI)
 
-A gravação foi informada pelo autor; conteúdo e duração não foram verificados nesta auditoria.
+[Assistir ao vídeo STAR no YouTube](https://youtu.be/QEMJ01rTEVk)
 
-Duração máxima exigida pelo enunciado: cinco minutos.
+
+Duração máxima exigida: cinco minutos.
 
 ### Situation
 
