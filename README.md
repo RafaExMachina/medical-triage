@@ -670,7 +670,7 @@ O modo standalone e adequado apenas para demonstracao. No Linux, use sempre
 **Status:** gravado.
 
 
-[Assistir ao vídeo STAR no YouTube](https://youtu.be/QEMJ01rTEVk)
+[Assistir ao vídeo STAR no YouTube](https://youtu.be/UE_DSfdFex0)
 
 
 Duração máxima exigida: cinco minutos.
